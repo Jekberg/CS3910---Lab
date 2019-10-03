@@ -1,5 +1,5 @@
 import math
-from typing import List, Set
+from typing import List, Set, Tuple
 import random
 import Graph
 
@@ -34,15 +34,33 @@ class Route:
 
 def main():
 	graph = loadCSV()
-	iter = 0
-	min = costOfRoute(graph, generateRouteInitialRouteFor(graph))
+	best = None
 	while True:
-		route = generateRouteInitialRouteFor(graph)
-		cost = costOfRoute(graph, route)
-		if cost < min:
-			min = cost
-			print(iter, " New minimum found: ", cost, route.nodeSeq)
-		iter += 1
+		c, r = runTSP(graph)
+		if best is None or c < best:
+			best = c
+			print(c, r.nodeSeq)
+
+def runTSP(graph: Graph.Graph) -> Tuple[float, Route]:
+	route = None
+	cost = None
+
+	for i in range(0, 64):
+		r = generateRouteInitialRouteFor(graph)
+		c = costOfRoute(graph, r)
+		if cost is None or c < cost:
+			route, cost = r, c
+	
+	repeat = True
+	while repeat:
+		repeat = False
+		for r in neighboutsOfRoute(route):
+			c = costOfRoute(graph, route)
+			if c < cost:
+				repeat = True
+				route, cost = r, c
+
+	return (cost, route)
 
 def loadCSV() -> Graph.Graph:
 	file = open("sample/ulysses16.csv", 'r')
@@ -100,13 +118,20 @@ def generateRouteInitialRouteFor(graph: Graph.Graph) -> Route:
 	return route
 
 def neighboutsOfRoute(route: Route) -> Set[Route]:
-	routesteps = route.nodeSeq.copy()
-	for i, n in enumerate(routesteps):
-		for j, m in enumerate(routesteps[i + 1:]):
-			routesteps[i], routesteps[i + j] = routesteps[i + j], routesteps[i]
-			for 
+	routeSteps = route.nodeSeq
+	newRoutes = list()
+	for i in range(0, len(routeSteps)):
+		for j in range(i + 1, len(routeSteps)):
+			newSteps = routeSteps.copy()
+			newSteps[i] = routeSteps[j]
+			newSteps[j] = routeSteps[i]
+			
+			newRoute = Route()
+			for s in newSteps:
+				newRoute.addStep(s)
+			newRoutes.append(newRoute)
 
-	return None
+	return newRoutes
 
 if __name__ == "__main__":
 	main()
