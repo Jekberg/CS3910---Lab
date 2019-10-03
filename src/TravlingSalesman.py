@@ -1,63 +1,7 @@
 import math
+from typing import List, Set
 import random
-from typing import List, Set, Dict
-
-class AdjecencyList:
-
-	def __init__(self):
-		self.m_edgeSet: Set[Tuple[str, str, float]] = set()
-
-	def addEdge(self, fromVtx: str, toVtx: str, weight: float):
-		self.m_edgeSet.add((fromVtx, toVtx, weight))
-
-class AdjacencyMatrix:
-
-    def __init__(self, vtxCount: int):
-        self.vtxCount= vtxCount
-        self.matrix: List[float] = [0.0] * vtxCount * vtxCount
-
-    def vertexCount(self) -> int:
-        return self.vtxCount
-
-    def weightOfEdge(self, startVtx: int, endVtx: int) -> float:
-        return self.matrix[startVtx * self.vtxCount + endVtx]
-
-class Graph:
-
-	def __init__(self, edges: AdjecencyList):
-		self.vertexAlias: Dict[str, int] = {}
-		self.vertexTable: List[str] = []
-
-		weightTable: List[Tuple[int, int, float]] = []
-		# Accessing member... for now
-		for edge in edges.m_edgeSet:
-			fromVtx, toVtx, weight = edge
-
-			if fromVtx not in self.vertexAlias:
-				self.vertexAlias[fromVtx] = len(self.vertexTable)
-				self.vertexTable.append(fromVtx)
-			
-			if toVtx not in self.vertexAlias:
-				self.vertexAlias[toVtx] = len(self.vertexTable)
-				self.vertexTable.append(toVtx)
-
-			weightTable.append((self.vertexAlias[fromVtx], self.vertexAlias[toVtx], weight))
-
-		self.adjacencyMatrix = AdjacencyMatrix(len(self.vertexTable))
-		for x, y, w in weightTable:
-			self.adjacencyMatrix.matrix[x + y * len(self.vertexTable)] = w
-
-	def vertecies(self) -> Set[str]:
-		return set(self.vertexTable)
-	
-	def vertexCount(self) -> int:
-		return self.adjacencyMatrix.vertexCount()
-	
-	def weightOfEdge(self, startName: str, endName: str) -> float:
-		return self.adjacencyMatrix.weightOfEdge(
-			self.vertexAlias[startName], self.vertexAlias[endName])
-
-theGraph: Graph = Graph(AdjecencyList())
+import Graph
 
 class Route:
 
@@ -89,18 +33,18 @@ class Route:
 			return None
 
 def main():
-	loadCSV()
+	graph = loadCSV()
 	iter = 0
-	min = costOfRoute(generateRandomRoute())
+	min = costOfRoute(graph, generateRouteInitialRouteFor(graph))
 	while True:
-		route = generateRandomRoute()
-		cost = costOfRoute(route)
+		route = generateRouteInitialRouteFor(graph)
+		cost = costOfRoute(graph, route)
 		if cost < min:
 			min = cost
 			print(iter, " New minimum found: ", cost, route.nodeSeq)
 		iter += 1
 
-def loadCSV():
+def loadCSV() -> Graph.Graph:
 	file = open("sample/ulysses16.csv", 'r')
 
 	# Skip headers
@@ -112,7 +56,7 @@ def loadCSV():
 	for line in file:
 		nodes.append(tuple(line.split(',')))
 
-	edges = AdjecencyList()
+	edges = Graph.AdjecencyList()
 	for i, v1 in enumerate(nodes):
 		for j, v2 in enumerate(nodes):
 			id1, x1, y1 = v1
@@ -123,31 +67,46 @@ def loadCSV():
 
 			edges.addEdge(id1, id2, math.sqrt(xDiff * xDiff + yDiff * yDiff))
 
-	global theGraph
-	theGraph = Graph(edges)
 	file.close()
+	return Graph.Graph(edges)
 
-def costOfRoute(route: Route) -> float:
-	if route.stepCount() != theGraph.vertexCount():
+def findRoute(graph: Graph.Graph):
+	route = generateRouteInitialRouteFor(graph)
+	for neighbourRoute in []:
+		return 0
+
+
+def costOfRoute(graph: Graph.Graph, route: Route) -> float:
+	if route.stepCount() != graph.vertexCount():
 		return None
 
 	totalCost: float = 0
 	for nodeA, nodeB in zip(route.nodeSeq, route.nodeSeq[1:]):
-		edgeCost = theGraph.weightOfEdge(nodeA, nodeB)
+		edgeCost = graph.weightOfEdge(nodeA, nodeB)
 		if edgeCost == 0:
 			# This is not a valid edge
 			return None
 		totalCost += edgeCost
 
     # Complete the cycle Last -> First
-	return totalCost + theGraph.weightOfEdge(route.startStep(), route.endStep())
+	return totalCost + graph.weightOfEdge(route.startStep(), route.endStep())
 
-def generateRandomRoute() -> Route:
-	verticiesToVisit = list(theGraph.vertecies())
+def generateRouteInitialRouteFor(graph: Graph.Graph) -> Route:
+	verticiesToVisit = list(graph.vertecies())
 	random.shuffle(verticiesToVisit)
 	route = Route()
 	for vertex in verticiesToVisit:
 		route.addStep(vertex)
 	return route
 
-main()
+def neighboutsOfRoute(route: Route) -> Set[Route]:
+	routesteps = route.nodeSeq.copy()
+	for i, n in enumerate(routesteps):
+		for j, m in enumerate(routesteps[i + 1:]):
+			routesteps[i], routesteps[i + j] = routesteps[i + j], routesteps[i]
+			for 
+
+	return None
+
+if __name__ == "__main__":
+	main()
