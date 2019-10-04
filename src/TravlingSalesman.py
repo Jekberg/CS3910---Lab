@@ -1,63 +1,7 @@
 import math
+from typing import List, Set, Tuple
 import random
-from typing import List, Set, Dict
-
-class AdjecencyList:
-
-	def __init__(self):
-		self.m_edgeSet: Set[Tuple[str, str, float]] = set()
-
-	def addEdge(self, fromVtx: str, toVtx: str, weight: float):
-		self.m_edgeSet.add((fromVtx, toVtx, weight))
-
-class AdjacencyMatrix:
-
-    def __init__(self, vtxCount: int):
-        self.vtxCount= vtxCount
-        self.matrix: List[float] = [0.0] * vtxCount * vtxCount
-
-    def vertexCount(self) -> int:
-        return self.vtxCount
-
-    def weightOfEdge(self, startVtx: int, endVtx: int) -> float:
-        return self.matrix[startVtx * self.vtxCount + endVtx]
-
-class Graph:
-
-	def __init__(self, edges: AdjecencyList):
-		self.vertexAlias: Dict[str, int] = {}
-		self.vertexTable: List[str] = []
-
-		weightTable: List[Tuple[int, int, float]] = []
-		# Accessing member... for now
-		for edge in edges.m_edgeSet:
-			fromVtx, toVtx, weight = edge
-
-			if fromVtx not in self.vertexAlias:
-				self.vertexAlias[fromVtx] = len(self.vertexTable)
-				self.vertexTable.append(fromVtx)
-			
-			if toVtx not in self.vertexAlias:
-				self.vertexAlias[toVtx] = len(self.vertexTable)
-				self.vertexTable.append(toVtx)
-
-			weightTable.append((self.vertexAlias[fromVtx], self.vertexAlias[toVtx], weight))
-
-		self.adjacencyMatrix = AdjacencyMatrix(len(self.vertexTable))
-		for x, y, w in weightTable:
-			self.adjacencyMatrix.matrix[x + y * len(self.vertexTable)] = w
-
-	def vertecies(self) -> Set[str]:
-		return set(self.vertexTable)
-	
-	def vertexCount(self) -> int:
-		return self.adjacencyMatrix.vertexCount()
-	
-	def weightOfEdge(self, startName: str, endName: str) -> float:
-		return self.adjacencyMatrix.weightOfEdge(
-			self.vertexAlias[startName], self.vertexAlias[endName])
-
-theGraph: Graph = Graph(AdjecencyList())
+import Graph
 
 class Route:
 
@@ -89,65 +33,95 @@ class Route:
 			return None
 
 def main():
-	loadCSV()
-	iter = 0
-	min = costOfRoute(generateRandomRoute())
+	graph = loadGraphFromCSV("sample/ulysses16.csv")
+	
+	best = None
 	while True:
-		route = generateRandomRoute()
-		cost = costOfRoute(route)
-		if cost < min:
-			min = cost
-			print(iter, " New minimum found: ", cost, route.nodeSeq)
-		iter += 1
+		c, r = runTSP(graph)
+		if best is None or c < best:
+			best = c
+			print(c, r.nodeSeq)
 
-def loadCSV():
-	file = open("sample/ulysses16.csv", 'r')
+def runTSP(graph: Graph.Graph) -> Tuple[float, Route]:
+	route = None
+	cost = None
+
+	for i in range(0, 1):
+		r = generateRouteInitialRouteFor(graph)
+		c = costOfRoute(graph, r)
+		if cost is None or c < cost:
+			route, cost = r, c
+	
+	repeat = True
+	while repeat:
+		repeat = False
+		for r in neighboutsOfRoute(route):
+			c = costOfRoute(graph, r)
+			if c < cost:
+				repeat = True
+				route, cost = r, c
+
+	return (cost, route)
+
+def loadGraphFromCSV(filepath: str) -> Graph.Graph:
+	file = open(filepath, 'r')
 
 	# Skip headers
 	file.readline()
 	file.readline()
 	file.readline()
 
-	nodes = []
-	for line in file:
-		nodes.append(tuple(line.split(',')))
+	nodes =  [tuple(line.split(',')) for line in file]
+	edges = Graph.AdjecencyList()
+	for id1, x1, y1 in nodes:
+		for id2, x2, y2 in nodes:
+			x1, x2 = float(x1), float(x2)
+			y1, y2 = float(y1), float(y2)
 
-	edges = AdjecencyList()
-	for i, v1 in enumerate(nodes):
-		for j, v2 in enumerate(nodes):
-			id1, x1, y1 = v1
-			id2, x2, y2 = v2
-			
-			xDiff = float(x1) - float(x2)
-			yDiff = float(y1) - float(y2)
+			edges.addEdge(id1, id2, math.hypot(x1 - x2, y1 - y2))
 
-			edges.addEdge(id1, id2, math.sqrt(xDiff * xDiff + yDiff * yDiff))
-
-	global theGraph
-	theGraph = Graph(edges)
 	file.close()
+	return Graph.Graph(edges)
 
-def costOfRoute(route: Route) -> float:
-	if route.stepCount() != theGraph.vertexCount():
+def costOfRoute(graph: Graph.Graph, route: Route) -> float:
+	if route.stepCount() != graph.vertexCount():
 		return None
 
-	totalCost: float = 0
+	totalCost = 0.0
 	for nodeA, nodeB in zip(route.nodeSeq, route.nodeSeq[1:]):
-		edgeCost = theGraph.weightOfEdge(nodeA, nodeB)
+		edgeCost = graph.weightOfEdge(nodeA, nodeB)
 		if edgeCost == 0:
 			# This is not a valid edge
 			return None
 		totalCost += edgeCost
 
+	# Seem to be accumulating about 0.2 fp rounding error?
     # Complete the cycle Last -> First
-	return totalCost + theGraph.weightOfEdge(route.startStep(), route.endStep())
+	return totalCost + graph.weightOfEdge(route.startStep(), route.endStep())
 
-def generateRandomRoute() -> Route:
-	verticiesToVisit = list(theGraph.vertecies())
+def generateRouteInitialRouteFor(graph: Graph.Graph) -> Route:
+	verticiesToVisit = list(graph.vertecies())
 	random.shuffle(verticiesToVisit)
 	route = Route()
 	for vertex in verticiesToVisit:
 		route.addStep(vertex)
 	return route
 
-main()
+def neighboutsOfRoute(route: Route) -> Set[Route]:
+	routeSteps = route.nodeSeq
+	newRoutes = list()
+	for i in range(0, len(routeSteps)):
+		for j in range(i + 1, len(routeSteps)):
+			newSteps = routeSteps.copy()
+			newSteps[i] = routeSteps[j]
+			newSteps[j] = routeSteps[i]
+			
+			newRoute = Route()
+			for s in newSteps:
+				newRoute.addStep(s)
+			newRoutes.append(newRoute)
+
+	return newRoutes
+
+if __name__ == "__main__":
+	main()
