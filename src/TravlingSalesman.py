@@ -33,7 +33,8 @@ class Route:
 			return None
 
 def main():
-	graph = loadCSV()
+	graph = loadGraphFromCSV("sample/ulysses16.csv")
+	
 	best = None
 	while True:
 		c, r = runTSP(graph)
@@ -45,7 +46,7 @@ def runTSP(graph: Graph.Graph) -> Tuple[float, Route]:
 	route = None
 	cost = None
 
-	for i in range(0, 64):
+	for i in range(0, 1):
 		r = generateRouteInitialRouteFor(graph)
 		c = costOfRoute(graph, r)
 		if cost is None or c < cost:
@@ -55,50 +56,38 @@ def runTSP(graph: Graph.Graph) -> Tuple[float, Route]:
 	while repeat:
 		repeat = False
 		for r in neighboutsOfRoute(route):
-			c = costOfRoute(graph, route)
+			c = costOfRoute(graph, r)
 			if c < cost:
 				repeat = True
 				route, cost = r, c
 
 	return (cost, route)
 
-def loadCSV() -> Graph.Graph:
-	file = open("sample/ulysses16.csv", 'r')
+def loadGraphFromCSV(filepath: str) -> Graph.Graph:
+	file = open(filepath, 'r')
 
 	# Skip headers
 	file.readline()
 	file.readline()
 	file.readline()
 
-	nodes = []
-	for line in file:
-		nodes.append(tuple(line.split(',')))
-
+	nodes =  [tuple(line.split(',')) for line in file]
 	edges = Graph.AdjecencyList()
-	for i, v1 in enumerate(nodes):
-		for j, v2 in enumerate(nodes):
-			id1, x1, y1 = v1
-			id2, x2, y2 = v2
-			
-			xDiff = float(x1) - float(x2)
-			yDiff = float(y1) - float(y2)
+	for id1, x1, y1 in nodes:
+		for id2, x2, y2 in nodes:
+			x1, x2 = float(x1), float(x2)
+			y1, y2 = float(y1), float(y2)
 
-			edges.addEdge(id1, id2, math.sqrt(xDiff * xDiff + yDiff * yDiff))
+			edges.addEdge(id1, id2, math.hypot(x1 - x2, y1 - y2))
 
 	file.close()
 	return Graph.Graph(edges)
-
-def findRoute(graph: Graph.Graph):
-	route = generateRouteInitialRouteFor(graph)
-	for neighbourRoute in []:
-		return 0
-
 
 def costOfRoute(graph: Graph.Graph, route: Route) -> float:
 	if route.stepCount() != graph.vertexCount():
 		return None
 
-	totalCost: float = 0
+	totalCost = 0.0
 	for nodeA, nodeB in zip(route.nodeSeq, route.nodeSeq[1:]):
 		edgeCost = graph.weightOfEdge(nodeA, nodeB)
 		if edgeCost == 0:
@@ -106,6 +95,7 @@ def costOfRoute(graph: Graph.Graph, route: Route) -> float:
 			return None
 		totalCost += edgeCost
 
+	# Seem to be accumulating about 0.2 fp rounding error?
     # Complete the cycle Last -> First
 	return totalCost + graph.weightOfEdge(route.startStep(), route.endStep())
 

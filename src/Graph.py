@@ -13,14 +13,14 @@ class AdjecencyList:
 class AdjacencyMatrix:
 
     def __init__(self, vtxCount: int):
-        self.vtxCount= vtxCount
-        self.matrix: List[float] = [0.0] * vtxCount * vtxCount
+        self.m_vtxCount = vtxCount
+        self.m_matrix: List[float] = [float] * vtxCount * vtxCount
 
     def vertexCount(self) -> int:
-        return self.vtxCount
+        return self.m_vtxCount
 
     def weightOfEdge(self, startVtx: int, endVtx: int) -> float:
-        return self.matrix[startVtx * self.vtxCount + endVtx]
+        return self.m_matrix[startVtx * self.m_vtxCount + endVtx]
 
 class Graph:
 
@@ -30,8 +30,7 @@ class Graph:
 
 		weightTable: List[Tuple[int, int, float]] = []
 		# Accessing member... for now
-		for edge in edges.m_edgeSet:
-			fromVtx, toVtx, weight = edge
+		for fromVtx, toVtx, weight in edges.m_edgeSet:
 
 			if fromVtx not in self.vertexAlias:
 				self.vertexAlias[fromVtx] = len(self.vertexTable)
@@ -45,7 +44,7 @@ class Graph:
 
 		self.adjacencyMatrix = AdjacencyMatrix(len(self.vertexTable))
 		for x, y, w in weightTable:
-			self.adjacencyMatrix.matrix[x + y * len(self.vertexTable)] = w
+			self.adjacencyMatrix.m_matrix[x + y * len(self.vertexTable)] = w
 
 	def vertecies(self) -> Set[str]:
 		return set(self.vertexTable)
