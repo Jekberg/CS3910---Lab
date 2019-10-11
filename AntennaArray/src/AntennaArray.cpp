@@ -3,6 +3,7 @@
 #include "AntennaArray.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <limits>
 #include <exception>
 #include <string>
@@ -22,7 +23,6 @@ std::vector<std::vector<double> > AntennaArray::bounds()
   return bnds;
 }
 
-#include<iostream>
 
 bool AntennaArray::is_valid(std::vector<double> design)
 {
