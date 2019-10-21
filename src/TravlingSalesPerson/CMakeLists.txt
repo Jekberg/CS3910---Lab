@@ -1,8 +1,8 @@
 add_executable(
-    TravlingSalesPerson
-    "Main.cpp")
+    HillClimbTSP
+    "HillClimbMain.cpp")
 
 target_link_directories(
-    TravlingSalesPerson
+    HillClimbTSP
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR})
