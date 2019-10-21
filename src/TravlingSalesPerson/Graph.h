@@ -1,6 +1,7 @@
-#ifndef GRAPH_H_
-#define GRAPH_H_
+#ifndef CS3910__GRAPH_H_
+#define CS3910__GRAPH_H_
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <memory>
@@ -61,19 +62,22 @@ struct Edge
     T weight;
 };
 
-class Graph final
+template<typename T, typename RandomIt>
+T costOfCycle(AdjacencyMatrix<T> const& m, RandomIt first, RandomIt last)
 {
-public:
-    constexpr double Edge(std::size_t nodeA, std::size_t nodeB) const noexcept;
+    assert(first != last && "No empty ranges allowed");
+    assert(std::distance(first, last) == m.Count() && "Not all nodes visited");
+    assert(std::unique(first, last) == last && "Visiting duplicate nodes");
 
-private:
-    AdjacencyMatrix<double> repr_;
-};
+    T totalCost{ *first > last[-1]
+        ? m(last[-1], *first)
+        : m(*first, last[-1]) };
+    for (; first + 1 != last; ++first)
+        totalCost += first[0] > first[1]
+            ? m(first[1], first[0])
+            : m(first[0], first[1]);
 
-constexpr double Graph::Edge(std::size_t nodeA, std::size_t nodeB)
-    const noexcept
-{
-    return repr_(nodeA, nodeB);
+    return totalCost;
 }
 
-#endif // !GRAPH_H_
+#endif // !CS3910__GRAPH_H_
