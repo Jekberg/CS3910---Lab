@@ -2,6 +2,7 @@
 #define PSO_H_
 
 #include <algorithm>
+#include <charconv>
 #include <numeric>
 #include <iostream>
 #include <iterator>
@@ -46,7 +47,8 @@ struct DefaultParticlePolicy
     {
         auto const bounds = arr.bounds();
         auto const count = bounds.size() - 1;
-        auto data = std::make_unique<double[]>(count);
+        auto data = std::make_unique<double[]>(count + 1);
+        data[count] = arr.bounds().back().max;
 
         do
         {
@@ -57,7 +59,7 @@ struct DefaultParticlePolicy
                     return std::uniform_real_distribution<>{ bound.min, bound.max }(rng);
                 });
             std::sort(data.get(), data.get() + count);
-        } while (arr.is_valid(data.get(), data.get() + count));
+        } while (arr.is_valid(data.get(), data.get() + count + 1));
         return std::valarray<double>{data.get(), count};
     }
 
@@ -122,6 +124,7 @@ void particleSwarmOptimization(AntennaArray& arr)
         return Position{ score, score, ParticlePolicy::initialVelocity(arr) };
     });
 
+
     double overallBest = std::numeric_limits<double>::max();
     auto i{ 1000 };
     while (i-- > 0)
@@ -155,6 +158,9 @@ void particleSwarmOptimization(AntennaArray& arr)
             std::sort(temp.begin(), temp.end());
             s.current.position = std::valarray<double>(temp.data(), temp.size());
 
+            if(auto max = arr.bounds().back().max; max < temp.back())
+                s.current.position /= max;
+        
             s.current.score = ParticlePolicy::evaluate(arr, s.current.position);
             if (s.current.score < s.personalBest.score)
                 s.personalBest = s.current;

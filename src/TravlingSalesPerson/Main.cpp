@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <charconv>
 #include <fstream>
 #include <iterator>
 #include <iostream>
@@ -37,18 +36,16 @@ struct CS3910InputTraits
         auto first = line.begin();
         auto last = std::find(first, line.end(), ',');
 
-        std::string id{first, last};
-        std::from_chars(id.data(), id.data() + id.size(), data.id);
-
+        data.id = std::stoi(std::string{first, last});
+        
         first = last + 1;
         last = std::find(first, line.end(), ',');
 
-        std::string x{ first, last };
-        std::from_chars(x.data(), x.data() + x.size(), data.x);
+        data.x = std::stod(std::string{ first, last });
 
-        std::string y{ last + 1, line.end() };
-        std::from_chars(y.data(), y.data() + y.size(), data.y);
-
+        first = last + 1;
+        last = std::find(first, line.end(), ',');
+        data.y = std::stod(std::string{ first, last });
         return true;
     }
 };

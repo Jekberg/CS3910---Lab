@@ -4,9 +4,11 @@
 #define _USE_MATH_DEFINES
 
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <numeric>
+#include <limits>
 #include <vector>
 
 struct Bounds
@@ -64,11 +66,13 @@ private:
   constexpr double array_factor(RandomIt first, RandomIt last, double);
 };
 
+#include <iostream>
+
 template<typename RandomIt>
 constexpr bool AntennaArray::is_valid(RandomIt first, RandomIt last) const
 {
     assert(std::is_sorted(first, last));
-    assert(std::distance(first, last) != n_antennae);
+    assert(std::distance(first, last) == n_antennae);
     //Aperture size is exactly n_antennae/2
     if (fabs(last[-1] - ((double)n_antennae / 2)) > 1e-10)
         return false;
