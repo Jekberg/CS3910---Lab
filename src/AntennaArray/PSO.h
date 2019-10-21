@@ -125,7 +125,7 @@ void particleSwarmOptimization(AntennaArray& arr)
     });
 
 
-    double overallBest = std::numeric_limits<double>::max();
+    double overallBest = std::numeric_limits<double>::infinity();
     auto i{ 1000 };
     while (i-- > 0)
     {
