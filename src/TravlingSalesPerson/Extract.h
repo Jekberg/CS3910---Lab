@@ -1,6 +1,7 @@
 #ifndef CS3910__EXCTRACT_H_
 #define CS3910__EXCTRACT_H_
 
+#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <istream>

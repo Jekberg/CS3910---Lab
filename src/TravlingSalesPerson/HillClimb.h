@@ -15,12 +15,7 @@ class CS3910HillClimbPolicy
 public:
     using value_type = std::unique_ptr<std::size_t[]>;
 
-    explicit CS3910HillClimbPolicy(std::string_view* nameArray, std::size_t count)
-        : nameCount_{ count }
-        , nameArray_{ nameArray }
-    {
-        assert(nameArray != nullptr);
-    }
+    explicit CS3910HillClimbPolicy(std::string_view* nameArray, std::size_t count);
 
     bool Terminate()
     {
@@ -73,6 +68,14 @@ private:
     std::size_t nameCount_;
     std::string_view* nameArray_;
 };
+
+template<typename GraphT>
+CS3910HillClimbPolicy<GraphT>::CS3910HillClimbPolicy(std::string_view* nameArray, std::size_t count)
+        : nameCount_{ count }
+        , nameArray_{ nameArray }
+    {
+        assert(nameArray != nullptr);
+    }
 
 template<typename GraphT>
 void CS3910HillClimbPolicy<GraphT>::Initialise(
