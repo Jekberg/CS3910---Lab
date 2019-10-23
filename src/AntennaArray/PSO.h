@@ -35,7 +35,8 @@ struct DefaultParticlePolicy
 
     static std::size_t populationSize(AntennaArray& arr)
     {
-        return arr.count();
+        //return arr.count();
+        return 50;
     }
 
     static value_type initialVelocity(AntennaArray& arr)
@@ -59,7 +60,7 @@ struct DefaultParticlePolicy
                     return std::uniform_real_distribution<>{ bound.min, bound.max }(rng);
                 });
             std::sort(data.get(), data.get() + count);
-        } while (arr.is_valid(data.get(), data.get() + count + 1));
+        } while (!arr.is_valid(data.get(), data.get() + count + 1));
         return std::valarray<double>{data.get(), count};
     }
 
@@ -140,7 +141,7 @@ void particleSwarmOptimization(AntennaArray& arr)
         if (globalBest.score < overallBest)
         {
             overallBest = globalBest.score;
-            std::cout << "Best: " << globalBest.score << ' ';
+            std::cout << i << " Best: " << globalBest.score << ' ';
             ParticlePolicy::print(std::cout, arr, globalBest.position) << '\n';
         }
 
