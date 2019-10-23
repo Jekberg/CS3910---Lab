@@ -1,11 +1,6 @@
 #include "ACO.h"
 #include "Extract.h"
-
-template<typename ExtractTraits>
-std::vector<typename ExtractTraits::value_type> ReadDataFrom(char const* fileName);
-
-template<typename ClimbPolicy, typename GraphT>
-void HillClimb(GraphT& graph, ClimbPolicy& policy);
+#include "Graph.h"
 
 int main(int argc, char const** argv)
 {
@@ -25,9 +20,24 @@ int main(int argc, char const** argv)
             graph(std::distance(data.begin(), i),
                 std::distance(data.begin(), j)) =
                 std::hypot(i->x - j->x, i->y - j->y);
-
-    //CS3910HillClimbPolicy<AdjacencyMatrix<double>> hcp{
-    //    nodeNames.get(),
-    //    data.size()};
-    //HillClimb(graph, hcp);
 }
+
+void Initialise(AdjacencyMatrix& graph, std::unique_ptr<std::size_t>& value)
+{
+    double a;
+    double b;
+
+    std::pow(Pheromone(graph, 0, 0), a) * std::pow(graph(0,0), b);
+}
+
+template<typename RandomIt>
+void Initialise(AdjacencyMatrix& graph, RandomIt first, RandomIt last, RandomIt cur)
+{
+    double a;
+    double b;
+
+
+
+    std::pow(Pheromone(graph, 0, 0), a) * std::pow(1/graph(0,0), b);
+}
+
