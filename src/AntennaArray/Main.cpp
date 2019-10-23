@@ -13,7 +13,7 @@ int main(int argc, char const** argv)
             << "The second argument is the steering angle\n"
             << "\n\n"
             << "Running PSO with 3 antennae and 90.0 steering angle...\n";
-    AntennaArray arr{9, 90.0};
+    AntennaArray arr{3, 90.0};
 
     std::cout << "Running...\n";
     particleSwarmOptimization<DefaultParticlePolicy>(arr);
