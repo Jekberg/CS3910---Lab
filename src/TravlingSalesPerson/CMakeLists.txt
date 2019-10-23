@@ -6,3 +6,7 @@ target_link_directories(
     HillClimbTSP
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(
+    ACOTSP
+    "ACOMain.cpp")
