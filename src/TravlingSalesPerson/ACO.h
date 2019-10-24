@@ -14,6 +14,13 @@ double& Pheromone(AdjacencyMatrix<double>& graph, std::size_t x, std::size_t y)
     return graph(x, y);
 }
 
+double& Weight(AdjacencyMatrix<double>& graph, std::size_t x, std::size_t y)
+{
+    if(x < y)
+        std::swap(x, y);
+    return graph(x, y);
+}
+
 template<typename RandomIt>
 void IncreasePheromone(
     AdjacencyMatrix<double>& graph,
