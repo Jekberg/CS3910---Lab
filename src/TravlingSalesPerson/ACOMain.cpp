@@ -1,12 +1,7 @@
 #include "ACO.h"
 #include "Extract.h"
 #include "Graph.h"
-#include <algorithm>
-#include <random>
 #include <iostream>
-
-template<typename RandomIt>
-void Initialise(AdjacencyMatrix<double>& graph, RandomIt first, RandomIt last);
 
 int main(int argc, char const** argv)
 {
@@ -29,60 +24,29 @@ int main(int argc, char const** argv)
 
     
 
-    auto abc{std::make_unique<std::size_t[]>(16)};
-    std::iota(abc.get(), abc.get() + 16, 0);
-    Initialise(graph, abc.get(), abc.get() + 16);
 
-    std::for_each(abc.get(), abc.get() + 16, [](auto a)
-    {
-        std::cout << a << '\n';
+    std::vector<std::unique_ptr<std::size_t>> pop(10);
+    std::for_each(pop.begin(), pop.end(), [](auto& oPtr){
+        auto temp{std::make_unique<std::size_t[]>(16)};
+        std::iota(temp.get(), temp.get() + 16, 0);
+        oPtr = std::move(temp);s
     });
-}
 
-
-template<typename RandomIt>
-void Initialise(AdjacencyMatrix<double>& graph, RandomIt first, RandomIt last)
-{
-    assert(first != last);
-
-    std::random_device rng{};
-    std::uniform_real_distribution<> dist{0.0, 1.0};
-    double a = 1;
-    double b = 1;
-
-    auto capacity = std::distance(first, last) - 1;
-    auto xs{std::make_unique<double[]>(capacity)};
-    auto xFirst = xs.get();
-    auto const xLast = xs.get() + capacity;
-
-    while(first + 1 != last)
+    for(auto i{0}; i < 1000; ++i)
     {
-        auto current{*first};
-        std::transform(first + 1, last, xFirst, [&](auto&& x)
+        std::for_each(pop.begin(), pop.end(), [&](auto& ant)
         {
-            return std::pow(Pheromone(graph, current, x), a)
-                * std::pow(1/graph(current, x), b);
+            Initialise(graph, ant.get(), ant.get() + graph.Count(), 1.0, 1.0);
         });
 
-        // Make the array into a cummulative array
-        std::transform(
-            xFirst, xLast - 1,
-            xFirst + 1, xFirst + 1, std::plus<double>{});
+        CS3910 c{};
+        c.Decay(graph);
 
-
-        // Pick the next element to visit at random and then
-        // place it as next in the visit list.
-        auto const r = dist(rng) * xLast[-1];
-        auto xIt = std::find_if(xFirst, xLast, [=](auto val)
+        std::for_each(pop.begin(), pop.end(), [&](auto& ant)
         {
-            return r <= val;
+            auto const length = costOfCycle(graph, ant.get(), ant.get() + graph.Count());
+            IncreasePheromone(graph, ant.get(), ant.get() + graph.Count());
         });
 
-        ++first;
-        std::swap(*first, first[std::distance(xFirst, xIt)]);
-        ++xFirst;
     }
-
-    std::pow(Pheromone(graph, 0, 0), a) * std::pow(1/graph(0,0), b);
 }
-
