@@ -62,6 +62,20 @@ struct Edge
     T weight;
 };
 
+double& Weight(AdjacencyMatrix<double>& graph, std::size_t x, std::size_t y)
+{
+    if (x > y)
+        std::swap(x, y);
+    return graph(x, y);
+}
+
+double Weight(AdjacencyMatrix<double> const& graph, std::size_t x, std::size_t y)
+{
+    if (x > y)
+        std::swap(x, y);
+    return graph(x, y);
+}
+
 template<typename T, typename RandomIt>
 T costOfCycle(AdjacencyMatrix<T> const& m, RandomIt first, RandomIt last)
 {
@@ -69,14 +83,9 @@ T costOfCycle(AdjacencyMatrix<T> const& m, RandomIt first, RandomIt last)
     assert(std::distance(first, last) == m.Count() && "Not all nodes visited");
     assert(std::unique(first, last) == last && "Visiting duplicate nodes");
 
-    T totalCost{ *first > last[-1]
-        ? m(last[-1], *first)
-        : m(*first, last[-1]) };
+    T totalCost{Weight(m, *first, last[-1])};
     for (; first + 1 != last; ++first)
-        totalCost += first[0] > first[1]
-            ? m(first[1], first[0])
-            : m(first[0], first[1]);
-
+        totalCost += Weight(m, first[0], first[1]);
     return totalCost;
 }
 
