@@ -45,53 +45,34 @@ void Initialise(
     double b)
 {
     assert(first != last);
+    auto edgeDesire{std::make_unique<double[]>(graph.Count())};
 
-    auto capacity = std::distance(first, last) - 1;
-    auto xs{std::make_unique<double[]>(capacity)};
-    auto xFirst = xs.get();
-    auto const xLast = xs.get() + capacity;
+    // 1 or 2 elements are the same...
+    if(first == last)
+        return;
 
-    while(first + 1 != last)
+    std::swap(*first, first[std::uniform_int_distribution<std::size_t>{0, graph.Count() - 1}(rng)]);
+    while(first + 2 != last)
     {
-        auto current{*first};
-        std::transform(first + 1, last, xFirst, [&](auto& x)
+        auto const pivot{*(first++)};
+        std::for_each(first, last, [&](auto const next) noexcept
         {
-            //std::cout << Pheromone(graph, current, x) << '\n';
-            return std::pow(Pheromone(graph, current, x), a)
-                * std::pow(1/Weight(graph, current, x), b);
+            edgeDesire[next] = std::pow(Pheromone(graph, pivot, next), a)
+                * std::pow(Weight(graph, pivot, next), -b);
         });
 
-        //std::cout << "ARRR ";
-        //std::for_each(xFirst, xLast, [](auto w)
-        //    {
-        //        std::cout << w << ' ';
-        //    });
-        //std::cout << "\n";
-
-        for(auto i = xFirst + 1; i != xLast; ++i)
-            *i += i[-1];
-
-
-        // Pick the next element to visit at random and then
-        // place it as next in the visit list.
-        auto const r = std::uniform_real_distribution<>{ 0.0, xLast[-1] }(rng);
-        auto xIt = std::find_if(xFirst, xLast, [=](auto val)
+        auto const total = std::accumulate(first, last, double{},[&](auto total, auto next)
         {
-            return r <= val;
+            return total + edgeDesire[next];
         });
 
-        ++first;
-
-        //std::cout << "ACCC ";
-        //std::for_each(xFirst, xLast, [](auto w)
-        //    {
-        //        std::cout << w << ' ';
-        //    });
-        //std::cout << "\n";
-        //std::cout << "R = " << r << '\n';
-        //std::cout << "DISTANCE = " << std::distance(xFirst, xIt) << '\n';
-        std::swap(*first, first[std::distance(xFirst, xIt)]);
-        ++xFirst;
+        auto r = std::uniform_real_distribution<>{ 0.0, total }(rng);
+        for(auto i{first}; i != last; ++i)
+            if(total <= (r += edgeDesire[*i]))
+            {
+                std::swap(*first, first[std::distance(first, i)]);
+                break;
+            }
     }
 }
 
@@ -127,7 +108,7 @@ private:
 template<typename T>
 void CS3910<T>::Decay(T& graph)
 {
-    for (std::size_t i{}; i < graph.Count(); ++i)
+    for (std::size_t i{1}; i < graph.Count(); ++i)
         for (auto j{ i + 1 }; j < graph.Count(); ++j)
             Pheromone(graph, i, j) *= p_;
 }
@@ -136,7 +117,7 @@ template<typename T>
 void CS3910<T>::Update(T& graph, value_type& value)
 {
     auto length = costOfCycle(graph, nullptr, nullptr);
-    IncreasePheromone(graph, value.get(), value.get() + graph.Count(), q_ / length);
+    IncreasePheromone(graph, value.get(), value.get() + graph.Count(), q_/length);
 }
 
 #endif // !CS390__ACO_H_

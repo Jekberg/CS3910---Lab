@@ -21,13 +21,11 @@ int main(int argc, char const** argv)
             graph(std::distance(data.begin(), i),
                 std::distance(data.begin(), j)) =
                 std::hypot(i->x - j->x, i->y - j->y);
-
-    // 76.7097
     
-    std::vector<std::unique_ptr<std::size_t>> pop(32);
-    std::for_each(pop.begin(), pop.end(), [](auto& oPtr){
-        auto temp{std::make_unique<std::size_t[]>(16)};
-        std::iota(temp.get(), temp.get() + 16, 0);
+    std::vector<std::unique_ptr<std::size_t>> pop(100);
+    std::for_each(pop.begin(), pop.end(), [&](auto& oPtr){
+        auto temp{std::make_unique<std::size_t[]>(graph.Count())};
+        std::iota(temp.get(), temp.get() + graph.Count(), 0);
         oPtr.reset(temp.release());
     });
 
@@ -37,17 +35,16 @@ int main(int argc, char const** argv)
             Pheromone(graph, i, j) = 0.01;
 
     double best = std::numeric_limits<double>::infinity();
+    CS3910<AdjacencyMatrix<double>> c{};
 
-    for(auto i{0}; i < 1000; ++i)
+    for(auto i{0}; i < 10000; ++i)
     {
         std::for_each(pop.begin(), pop.end(), [&](auto& ant)
         {
             Initialise(graph, ant.get(), ant.get() + graph.Count(), 1, 5);
         });
 
-        CS3910<AdjacencyMatrix<double>> c{};
         c.Decay(graph);
-
         std::for_each(pop.begin(), pop.end(), [&](auto& ant)
         {
             double q = 100.0;
