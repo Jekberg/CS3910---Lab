@@ -10,28 +10,33 @@ template<typename T>
 class AdjacencyMatrix final
 {
 public:
+    using value_type = T;
+
     explicit AdjacencyMatrix(std::size_t count);
 
-    constexpr T& operator()(std::size_t x, std::size_t y) noexcept;
+    constexpr value_type& operator()(std::size_t x, std::size_t y) noexcept;
 
-    constexpr T operator()(std::size_t x, std::size_t y) const noexcept;
+    constexpr value_type operator()(std::size_t x, std::size_t y) const noexcept;
 
     constexpr std::size_t Count() const noexcept;
 private:
-    std::unique_ptr<T[]> data_;
+    std::unique_ptr<value_type[]> data_;
 
     std::size_t count_;
 };
 
 template<typename T>
 AdjacencyMatrix<T>::AdjacencyMatrix(std::size_t count)
- : data_{std::make_unique<T[]>(count * count)}
+ : data_{std::make_unique<value_type[]>(count * count)}
  , count_{count}
 {
 }
 
 template<typename T>
-constexpr T& AdjacencyMatrix<T>::operator()(std::size_t x, std::size_t y)
+constexpr typename AdjacencyMatrix<T>::value_type&
+AdjacencyMatrix<T>::operator()(
+    std::size_t x,
+    std::size_t y)
     noexcept
 {
     assert(x < count_ && "The x position must be less than the vertex count.");
@@ -40,7 +45,10 @@ constexpr T& AdjacencyMatrix<T>::operator()(std::size_t x, std::size_t y)
 }
 
 template<typename T>
-constexpr T AdjacencyMatrix<T>::operator()(std::size_t x, std::size_t y)
+constexpr typename AdjacencyMatrix<T>::value_type
+AdjacencyMatrix<T>::operator()(
+    std::size_t x,
+    std::size_t y)
     const noexcept
 {
     assert(x < count_ && "The x position must be less than the vertex count.");
@@ -55,21 +63,15 @@ constexpr std::size_t AdjacencyMatrix<T>::Count() const noexcept
 }
 
 template<typename T>
-struct Edge
-{
-    std::size_t from;
-    std::size_t to;
-    T weight;
-};
-
-double& Weight(AdjacencyMatrix<double>& graph, std::size_t x, std::size_t y)
+T& Weight(AdjacencyMatrix<T>& graph, std::size_t x, std::size_t y)
 {
     if (x > y)
         std::swap(x, y);
     return graph(x, y);
 }
 
-double Weight(AdjacencyMatrix<double> const& graph, std::size_t x, std::size_t y)
+template<typename T>
+T Weight(AdjacencyMatrix<T> const& graph, std::size_t x, std::size_t y)
 {
     if (x > y)
         std::swap(x, y);

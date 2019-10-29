@@ -11,7 +11,8 @@
 
 struct CS3910ExtractTraits
 {
-    using value_type = struct {
+    using value_type = struct
+    {
         std::string id;
         double x;
         double y;
@@ -34,17 +35,16 @@ struct CS3910ExtractTraits
 
         auto first = line.begin();
         auto last = std::find(first, line.end(), ',');
-
         data.id = std::string{ first, last };
 
         first = last + 1;
         last = std::find(first, line.end(), ',');
-
         data.x = std::stod(std::string{ first, last });
 
         first = last + 1;
         last = std::find(first, line.end(), ',');
         data.y = std::stod(std::string{ first, last });
+        
         return true;
     }
 };
