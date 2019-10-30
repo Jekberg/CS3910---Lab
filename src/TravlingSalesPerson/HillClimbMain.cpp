@@ -90,6 +90,7 @@ void CS3910HillClimbPolicy<T>::Step()
     std::size_t bestJ;
     std::shuffle(x_.route.get() + 1, x_.route.get() + env_.Count(), rng_);
     
+    T localBest = std::numeric_limits<T>::infinity();
     do
     {
         bestI = 0;
@@ -98,28 +99,15 @@ void CS3910HillClimbPolicy<T>::Step()
             for (std::size_t j{ i + 1 }; j < env_.Count(); ++j)
             {
                 std::swap(x_.route[i], x_.route[j]);
-                x_.cost = costOfCycle(
+                x_.cost = CostOf(
                     env_,
                     x_.route.get(),
                     x_.route.get() + env_.Count());
-                if (x_.cost < best_)
+                if (x_.cost < localBest)
                 {
-                    best_ = x_.cost;
+                    localBest = x_.cost;
                     bestI = i;
                     bestJ = j;
-
-                    std::cout << iteration_;
-                    std::cout << " Best: " << best_ << ' ';
-                    std::cout << '[' << nameIndex_[x_.route[0]];
-                    std::for_each(
-                        x_.route.get() + 1,
-                        x_.route.get() + env_.Count(),
-                        [&](auto id)
-                        {
-                            std::cout << ' ' << nameIndex_[id];
-                        });
-
-                    std::cout << "]\n";
                 }
                 std::swap(x_.route[i], x_.route[j]);
             }
@@ -128,6 +116,24 @@ void CS3910HillClimbPolicy<T>::Step()
         std::swap(x_.route[bestI], x_.route[bestJ]);
     }
     while(bestI != bestJ);
+
+
+    if (localBest < best_)
+    {
+        best_ = localBest;
+        std::cout << iteration_;
+        std::cout << ": " << best_ << ' ';
+        std::cout << '[' << nameIndex_[x_.route[0]];
+        std::for_each_n(
+            x_.route.get() + 1,
+            env_.Count() - 1,
+            [&](auto id)
+            {
+                std::cout << ' ' << nameIndex_[id];
+            });
+
+        std::cout << "]\n";
+    }
 }
 
 template<typename T>

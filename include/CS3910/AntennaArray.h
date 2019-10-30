@@ -1,8 +1,7 @@
-#ifndef ANTENNA_ARRAY_H
-#define ANTENNA_ARRAY_H
+#ifndef CS3910__ANTENNAARRAY_H_
+#define CS3910__ANTENNAARRAY_H_
 
 #define _USE_MATH_DEFINES
-
 
 #include <algorithm>
 #include <cassert>
@@ -18,52 +17,53 @@ struct Bounds
 };
 
 //! Antenna array design problem
-class AntennaArray{
+class AntennaArray
+{
 public:
-  //! Minimum spacing permitted between antennae.
-  static const double MIN_SPACING;
+    //! Minimum spacing permitted between antennae.
+    static const double MIN_SPACING;
   
-  /*!
-   * @brief Construct an antenna design problem.
-   * @param n_ant Number of antennae in our array.
-   * @param steering_ang Desired direction of the main beam in degrees.
-   */
-  AntennaArray(unsigned int n_ant,double steering_ang = 90);
+    /*!
+    * @brief Construct an antenna design problem.
+    * @param n_ant Number of antennae in our array.
+    * @param steering_ang Desired direction of the main beam in degrees.
+    */
+    AntennaArray(unsigned int n_ant,double steering_ang = 90);
 
-  std::size_t count() const noexcept;
+    std::size_t count() const noexcept;
 
-  /*!
-   * @brief Rectangular bounds on the search space.
-   * @return Vector b such that b[i][0] is the minimum permissible value of the
-   * ith solution component and b[i][1] is the maximum.
-   */
-  std::vector<Bounds> bounds() const;
-  /*!
-   * @brief Check whether an antenna design lies within the problem's feasible
-   * region.
-   * A design is a vector of n_antennae anntena placements.
-   * A placement is a distance from the left hand side of the antenna array.
-   * A valid placement is one in which
-   *   1) all antennae are separated by at least MIN_SPACING
-   *   2) the aperture size (the maximum element of the array) is exactly
-   *      n_antennae/2.
-   */
-  template<typename RandomIt>
-  constexpr bool is_valid(RandomIt first, RandomIt last) const;
-  /*!
-   * @brief Evaluate an antenna design returning peak SSL.
-   * Designs which violate problem constraints will be penalised with extremely
-   * high costs.
-   * @param design A valid antenna array design.
-   */
-  template<typename RandomIt>
-  constexpr double evaluate(RandomIt first, RandomIt last);
+    /*!
+    * @brief Rectangular bounds on the search space.
+    * @return Vector b such that b[i][0] is the minimum permissible value of the
+    * ith solution component and b[i][1] is the maximum.
+    */
+    std::vector<Bounds> bounds() const;
+    /*!
+    * @brief Check whether an antenna design lies within the problem's feasible
+    * region.
+    * A design is a vector of n_antennae anntena placements.
+    * A placement is a distance from the left hand side of the antenna array.
+    * A valid placement is one in which
+    *   1) all antennae are separated by at least MIN_SPACING
+    *   2) the aperture size (the maximum element of the array) is exactly
+    *      n_antennae/2.
+    */
+    template<typename RandomIt>
+    constexpr bool is_valid(RandomIt first, RandomIt last) const;
+    /*!
+    * @brief Evaluate an antenna design returning peak SSL.
+    * Designs which violate problem constraints will be penalised with extremely
+    * high costs.
+    * @param design A valid antenna array design.
+    */
+    template<typename RandomIt>
+    constexpr double evaluate(RandomIt first, RandomIt last);
 private:
-  const unsigned int n_antennae;
-  const double steering_angle;
+    const unsigned int n_antennae;
+    const double steering_angle;
 
-  template<typename RandomIt>
-  constexpr double array_factor(RandomIt first, RandomIt last, double);
+    template<typename RandomIt>
+    constexpr double array_factor(RandomIt first, RandomIt last, double);
 };
 
 #include <iostream>
@@ -146,4 +146,4 @@ constexpr double AntennaArray::array_factor(RandomIt first, RandomIt last, doubl
 }
 
 
-#endif /* ANTENNA_ARRAY_H */
+#endif // !CS3910__ANTENNAARRAY_H_

@@ -6,4 +6,5 @@ add_executable(
 target_include_directories(
     AntennaArray
     PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR})
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CS3910_INCLUDE_DIR})

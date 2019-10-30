@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 
-#include "AntennaArray.h"
+#include "CS3910/AntennaArray.h"
 #include <limits>
 
 const double AntennaArray::MIN_SPACING = 0.25;

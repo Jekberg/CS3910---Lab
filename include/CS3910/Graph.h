@@ -79,7 +79,7 @@ T Weight(AdjacencyMatrix<T> const& graph, std::size_t x, std::size_t y)
 }
 
 template<typename T, typename RandomIt>
-T costOfCycle(AdjacencyMatrix<T> const& m, RandomIt first, RandomIt last)
+T CostOf(AdjacencyMatrix<T> const& m, RandomIt first, RandomIt last)
 {
     assert(first != last && "No empty ranges allowed");
     assert(std::distance(first, last) == m.Count() && "Not all nodes visited");
