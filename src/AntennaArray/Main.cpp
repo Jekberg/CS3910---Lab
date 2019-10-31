@@ -104,7 +104,7 @@ int main(int argc, char const** argv)
             << "The second argument is the steering angle\n"
             << "\n\n"
             << "Running PSO with 3 antennae and 90.0 steering angle...\n";
-    AntennaArray arr{11, 90.0};
+    AntennaArray arr{20, 90.0};
 
 
     std::cout << "Running...\n";
@@ -155,10 +155,11 @@ void CS3910ParticleSwarmPolicy::Step()
             particle.velocity.get(),
             particle.bestPosition.get(),
             bestPosition_.get());
-        
+
         particle.sll = env_.evaluate(
             particle.position.get(),
             particle.position.get() + env_.count());
+
 
         if(particle.sll < particle.bestSLL)
         {
@@ -194,6 +195,14 @@ void CS3910ParticleSwarmPolicy::Update(
         std::plus<double>{});
 
     std::sort(position, position + env_.count() - 1);
+
+    auto [min, max] = env_.bounds().back();
+
+    if (max <= position[env_.count() - 2])
+        std::for_each_n(position, env_.count() - 1, [=](auto& x)
+            {
+                x /= max;
+            });
 }
 
 template<typename RandomIt>
@@ -202,15 +211,17 @@ void CS3910ParticleSwarmPolicy::Place(RandomIt first, RandomIt last)
     assert(first != last);
     assert(std::distance(first, last) == env_.count());
 
+    first;
     *(--last) = env_.bounds().back().max;
 
     do
     {
-        std::for_each(first, last, [&](auto&& x)
+        double lowerBound{ (env_.count() - 1)  * AntennaArray::MIN_SPACING };
+        for (auto i{ last - 1}; first != i; --i)
         {
-            x = std::uniform_real_distribution<>{ 0.0, *last }(rng_);
-        });
-        std::sort(first, last);
+            *i = std::uniform_real_distribution<>{lowerBound, i[1] - AntennaArray::MIN_SPACING }(rng_);
+            lowerBound -= AntennaArray::MIN_SPACING;
+        }
     }
     while (!env_.is_valid(first, last + 1));
 }
