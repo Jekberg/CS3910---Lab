@@ -17,3 +17,13 @@ target_include_directories(
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})
+
+add_executable(
+    EvoTSP
+    "EvoMain.cpp")
+
+target_include_directories(
+    EvoTSP
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CS3910_INCLUDE_DIR})
