@@ -92,6 +92,7 @@ private:
     void Fix(RandomIt first, RandomIt last)
     {
         assert(first != last);
+        std::sort(first, last - 1);
 
         if(auto min = env_.bounds().back().min; *first < min)
             *first = min;
