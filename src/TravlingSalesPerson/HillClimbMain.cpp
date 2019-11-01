@@ -124,9 +124,9 @@ void CS3910HillClimbPolicy<T>::Step()
         std::cout << iteration_;
         std::cout << ": " << best_ << ' ';
         std::cout << '[' << nameIndex_[x_.route[0]];
-        std::for_each_n(
+        std::for_each(
             x_.route.get() + 1,
-            env_.Count() - 1,
+            x_.route.get() + env_.Count(),
             [&](auto id)
             {
                 std::cout << ' ' << nameIndex_[id];

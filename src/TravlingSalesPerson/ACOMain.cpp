@@ -105,9 +105,9 @@ void CS3910AntSystemPolicy<T>::Initialise()
     best_ = std::numeric_limits<T>::infinity();
     iteration_ = 0;
     population_ = std::make_unique<value_type[]>(populationSize_);
-    std::for_each_n(
+    std::for_each(
         population_.get(),
-        populationSize_,
+        population_.get() + populationSize_,
         [&](auto& ant)
         {
             ant = {0.0, std::make_unique<std::size_t[]>(env_.Count())};
@@ -122,9 +122,9 @@ void CS3910AntSystemPolicy<T>::Initialise()
 template<typename T>
 void CS3910AntSystemPolicy<T>::Step()
 {
-    std::for_each_n(
+    std::for_each(
         population_.get(),
-        populationSize_,
+        population_.get() + populationSize_,
         [&](auto& ant)
     {
         auto& [cost, route] = ant;
@@ -134,9 +134,9 @@ void CS3910AntSystemPolicy<T>::Step()
 
     DecayPheromone(env_, p_);
     
-    std::for_each_n(
+    std::for_each(
         population_.get(),
-        populationSize_,
+        population_.get() + populationSize_,
         [&](auto& ant)
         {
             auto& [cost, route] = ant;
@@ -157,7 +157,7 @@ void CS3910AntSystemPolicy<T>::Step()
         best_ = it->cost;
         std::cout << iteration_ << ": " << it->cost << " [";
         std::cout << nameIndex_[it->route[0]];
-        std::for_each_n(it->route.get() + 1, env_.Count() - 1, [&](auto& x)
+        std::for_each(it->route.get() + 1, it->route.get() + env_.Count(), [&](auto& x)
         {
             std::cout << ' ' << nameIndex_[x];
         });

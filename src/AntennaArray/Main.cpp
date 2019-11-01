@@ -89,6 +89,27 @@ private:
     }
 
     template<typename RandomIt>
+    void Fix(RandomIt first, RandomIt last)
+    {
+        assert(first != last);
+
+        if(auto min = env_.bounds().back().min; *first < min)
+            *first = min;
+
+        for(auto i = first + 1; i != last - 1; ++i)
+        {
+            if(i[0] < i[-1] + AntennaArray::MIN_SPACING)
+                i[0] = i[-1] + AntennaArray::MIN_SPACING;
+        }
+
+        for(auto i = last - 2; i != first - 1; --i)
+        {
+            if(i[0] > i[1] - AntennaArray::MIN_SPACING)
+                i[0] = i[1] - AntennaArray::MIN_SPACING;
+        }
+    }
+
+    template<typename RandomIt>
     void Place(RandomIt first, RandomIt last);
 
     std::valarray<double> RandomVec();
@@ -125,7 +146,10 @@ void CS3910ParticleSwarmPolicy::Initialise()
     bestPosition_ = std::make_unique<double[]>(env_.count());
 
     population_ = std::make_unique<value_type[]>(populationSize_);
-    std::for_each_n(population_.get(), populationSize_, [&](auto& particle)
+    std::for_each(
+        population_.get(),
+        population_.get() + populationSize_,
+        [&](auto& particle)
     {
         particle.position = std::make_unique<double[]>(env_.count());
         Place(particle.position.get(), particle.position.get() + env_.count());
@@ -147,7 +171,10 @@ void CS3910ParticleSwarmPolicy::Initialise()
 void CS3910ParticleSwarmPolicy::Step()
 {
     UpdateBest();
-    std::for_each_n(population_.get(), populationSize_, [&](auto& particle)
+    std::for_each(
+        population_.get(),
+        population_.get() + populationSize_,
+        [&](auto& particle)
     {
         // Move particle
         Update(
@@ -185,7 +212,7 @@ void CS3910ParticleSwarmPolicy::Update(
     auto const r1 = RandomVec();
     auto const r2 = RandomVec();
 
-    auto newV = n * v + o1 * r1 *(p - x) + o2 * r2 * (g - x);
+    std::valarray<double> newV = n * v + o1 * r1 *(p - x) + o2 * r2 * (g - x);
     std::copy(std::begin(newV), std::end(newV), velocity);
     std::transform(
         std::begin(newV),
@@ -194,15 +221,7 @@ void CS3910ParticleSwarmPolicy::Update(
         position,
         std::plus<double>{});
 
-    std::sort(position, position + env_.count() - 1);
-
-    auto [min, max] = env_.bounds().back();
-
-    if (max <= position[env_.count() - 2])
-        std::for_each_n(position, env_.count() - 1, [=](auto& x)
-            {
-                x /= max;
-            });
+    Fix(position, position + env_.count());
 }
 
 template<typename RandomIt>
@@ -211,17 +230,18 @@ void CS3910ParticleSwarmPolicy::Place(RandomIt first, RandomIt last)
     assert(first != last);
     assert(std::distance(first, last) == env_.count());
 
-    first;
-    *(--last) = env_.bounds().back().max;
+
+    auto const [Min, Max] = env_.bounds().back();
+    *(--last) = Max;
 
     do
     {
-        double lowerBound{ (env_.count() - 1)  * AntennaArray::MIN_SPACING };
-        for (auto i{ last - 1}; first != i; --i)
+        std::for_each(first, last - 1, [&](auto& x)
         {
-            *i = std::uniform_real_distribution<>{lowerBound, i[1] - AntennaArray::MIN_SPACING }(rng_);
-            lowerBound -= AntennaArray::MIN_SPACING;
-        }
+            x = std::uniform_real_distribution<>{Min, Max}(rng_);
+        });
+
+        Fix(first, last + 1);
     }
     while (!env_.is_valid(first, last + 1));
 }
@@ -234,8 +254,8 @@ bool CS3910ParticleSwarmPolicy::Terminate()
 std::valarray<double> CS3910ParticleSwarmPolicy::RandomVec()
 {
     auto temp{std::make_unique<double[]>(env_.count() - 1)};
-    std::uniform_real_distribution<> dist{0.0, 1.0};
-    std::for_each_n(temp.get(), env_.count() - 1, [&](auto& x)
+    std::uniform_real_distribution<> dist{-1.0, 1.0};
+    std::for_each(temp.get(), temp.get() + env_.count() - 1, [&](auto& x)
     {
         x = dist(rng_);
     });
