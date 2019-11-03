@@ -12,6 +12,8 @@ set(CS3910_OUTPUT_DIR "${CS3910_BUILD_DIR}/bin")
 set(CS3910_INCLUDE_DIR "${CS3910_DIR}/include")
 set(CS3910_SOURCE_DIR "${CS3910_DIR}/src")
 
+#list(APPEND CMAKE_CXX_FLAGS "-fsanitize=thread")
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 add_subdirectory("${CS3910_SOURCE_DIR}")

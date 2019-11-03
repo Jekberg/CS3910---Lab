@@ -17,6 +17,7 @@ public:
     {
         typename AdjacencyMatrix<T>::value_type cost;
         std::unique_ptr<std::size_t[]> route;
+        std::minstd_rand0 rng{};
     };
 
     explicit CS3910AntSystemPolicy(
@@ -57,14 +58,12 @@ private:
 
     std::size_t iteration_;
 
-    std::minstd_rand rng_{};
-
     T best_;
 
     std::string_view* nameIndex_;
 
-    template<typename RandomIt>
-    void Construct(RandomIt first, RandomIt last);
+    template<typename RandomIt, typename RngT>
+    void Construct(RandomIt first, RandomIt last, RngT& rng);
 };
 
 int main(int argc, char const** argv)
@@ -106,12 +105,15 @@ void CS3910AntSystemPolicy<T>::Initialise()
     best_ = std::numeric_limits<T>::infinity();
     iteration_ = 0;
     population_ = std::make_unique<value_type[]>(populationSize_);
+    std::random_device rng{};
     std::for_each(
         population_.get(),
         population_.get() + populationSize_,
         [&](auto& ant)
         {
-            ant = {0.0, std::make_unique<std::size_t[]>(env_.Count())};
+            ant.cost = 0.0;
+            ant.route = std::make_unique<std::size_t[]>(env_.Count());
+            ant.rng.seed(rng());
             std::iota(ant.route.get(), ant.route.get() + env_.Count(), 0);
         });
 
@@ -124,13 +126,13 @@ template<typename T>
 void CS3910AntSystemPolicy<T>::Step()
 {
     std::for_each(
-        std::execution::par_unseq,
+        std::execution::par,
         population_.get(),
         population_.get() + populationSize_,
         [&](auto& ant)
     {
-        auto& [cost, route] = ant;
-        Construct(route.get(), route.get() + env_.Count());
+        auto& [cost, route, rng] = ant;
+        Construct(route.get(), route.get() + env_.Count(), rng);
         cost = CostOf(env_, route.get(), route.get() + env_.Count());
     });
 
@@ -141,20 +143,20 @@ void CS3910AntSystemPolicy<T>::Step()
         population_.get() + populationSize_,
         [&](auto& ant)
         {
-            auto& [cost, route] = ant;
+            auto& [cost, route , rng] = ant;
             IncreasePheromone(env_, q_/cost, route.get(), route.get() + env_.Count());
         });
 
 
-    auto it = std::find_if(
+    auto it = std::min_element(
         population_.get(),
         population_.get() + populationSize_,
-        [=](auto& ant)
+        [=](auto& a, auto& b)
         {
-            return ant.cost < best_;
+            return a.cost < b.cost;
         });
 
-    if(it != population_.get() + populationSize_)
+    if(it != population_.get() + populationSize_ && it->cost < best_)
     {
         best_ = it->cost;
         std::cout << iteration_ << ": " << it->cost << " [";
@@ -168,15 +170,15 @@ void CS3910AntSystemPolicy<T>::Step()
 }
 
 template<typename T>
-template<typename RandomIt>
-void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last)
+template<typename RandomIt, typename RngT>
+void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last, RngT& rng)
 {
     assert(first != last);
     auto edgeDesire{ std::make_unique<double[]>(env_.Count()) };
 
     using IntDistribution = std::uniform_int_distribution<std::size_t>;
 
-    std::swap(*first, first[IntDistribution{0, env_.Count() - 1}(rng_)]);
+    std::swap(*first, first[IntDistribution{0, env_.Count() - 1}(rng)]);
     while (first + 1 != last)
     {
         auto const pivot{ *(first++) };
@@ -198,7 +200,7 @@ void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last)
                 return total + edgeDesire[next];
             });
 
-        auto r = std::uniform_real_distribution<>{ 0.0, total }(rng_);
+        auto r = std::uniform_real_distribution<>{ 0.0, total }(rng);
         for (auto i{ first }; i != last; ++i)
             if (total <= (r += edgeDesire[*i]))
             {
