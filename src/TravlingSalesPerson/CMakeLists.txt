@@ -18,6 +18,10 @@ target_include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})
 
+target_link_libraries(ACOTSP
+    PRIVATE
+    tbb)
+
 add_executable(
     EvoTSP
     "EvoMain.cpp")

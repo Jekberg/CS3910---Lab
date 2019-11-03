@@ -1,6 +1,7 @@
 #include "CS3910/AntennaArray.h"
 #include "CS3910/Simulation.h"
 #include <cmath>
+#include <execution>
 #include <memory>
 #include <random>
 #include <iterator>
@@ -126,7 +127,7 @@ int main(int argc, char const** argv)
             << "The second argument is the steering angle\n"
             << "\n\n"
             << "Running PSO with 3 antennae and 90.0 steering angle...\n";
-    AntennaArray arr{20, 90.0};
+    AntennaArray arr{10, 90.0};
 
 
     std::cout << "Running...\n";
@@ -173,6 +174,7 @@ void CS3910ParticleSwarmPolicy::Step()
 {
     UpdateBest();
     std::for_each(
+        std::execution::par_unseq,
         population_.get(),
         population_.get() + populationSize_,
         [&](auto& particle)

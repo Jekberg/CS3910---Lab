@@ -3,6 +3,7 @@
 #include "CS3910/Pheromone.h"
 #include "CS3910/Simulation.h"
 #include <algorithm>
+#include <execution>
 #include <iostream>
 #include <numeric>
 #include <random>
@@ -123,6 +124,7 @@ template<typename T>
 void CS3910AntSystemPolicy<T>::Step()
 {
     std::for_each(
+        std::execution::par_unseq,
         population_.get(),
         population_.get() + populationSize_,
         [&](auto& ant)

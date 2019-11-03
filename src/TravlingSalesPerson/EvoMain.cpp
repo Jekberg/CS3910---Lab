@@ -38,7 +38,7 @@ private:
 
 int main(int argc, char const** argv)
 {
-    Simulation<CS3910EvolutionPolicy<double>>{}.Run();
+    //Simulation<CS3910EvolutionPolicy<double>>{}.Run();
 }
 
 template<typename T>
@@ -61,32 +61,32 @@ void CS3910EvolutionPolicy<T>::Initialise()
         });
 }
 
-template<typename RandomIt>
-void f(RandomIt first, RandomIt last)
-{
-    auto const K = 2;
-    // Torunament
-    for(auto i = first ; i != last; i++)
-    {
-        // Select K members
-        for(auto j = 0; j < K; ++j)
-        {
-            auto c = std::uniform_int_distribution<std::size_t>{
-                j,
-                std::distance(i, last)}(rng_);
-            std::swap(i[j], i[c]);
-        }
-
-        // Get the best fitness
-        auto winnerIt = std::max_element(i, k, [=](auto& a, auto& b)
-        {
-            return a > b;
-        });
-
-        // Set the ...
-        std::swap(*i, *winnerIt);
-    }
-}
+//template<typename RandomIt>
+//void f(RandomIt first, RandomIt last)
+//{
+//    auto const K = 2;
+//    // Torunament
+//    for(auto i = first ; i != last; i++)
+//    {
+//        // Select K members
+//        for(auto j = 0; j < K; ++j)
+//        {
+//            auto c = std::uniform_int_distribution<std::size_t>{
+//                j,
+//                std::distance(i, last)}(rng_);
+//            std::swap(i[j], i[c]);
+//        }
+//
+//        // Get the best fitness
+//        auto winnerIt = std::max_element(i, k, [=](auto& a, auto& b)
+//        {
+//            return a > b;
+//        });
+//
+//        // Set the ...
+//        std::swap(*i, *winnerIt);
+//    }
+//}
 
 template<typename T>
 void CS3910EvolutionPolicy<T>::Step()

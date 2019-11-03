@@ -8,3 +8,8 @@ target_include_directories(
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})
+
+target_link_libraries(
+    AntennaArray
+    PRIVATE
+        tbb)
