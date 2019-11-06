@@ -1,7 +1,5 @@
-#include "Extract.h"
 #include "TravlingSalesman.h"
-#include "CS3910/Mutation.h"
-#include "CS3910/Selection.h"
+#include "CS3910/Evolution.h"
 #include "CS3910/Simulation.h"
 #include "CS3910/Graph.h"
 #include <algorithm>
@@ -13,7 +11,7 @@
 #include <random>
 
 template<typename T>
-struct CS3910EvolutionPolicy : private TravlingSalesman
+struct CS3910EvolutionPolicy : private TravlingSalesman<T>
 {
 public:
     using value_type = struct
@@ -22,7 +20,10 @@ public:
         std::unique_ptr<std::size_t[]> route;
     };
 
-    explicit CS3910EvolutionPolicy(AdjacencyMatrix<T>& env, std::string_view* nameIndex) noexcept;
+    explicit CS3910EvolutionPolicy(char const* fileName)
+        : TravlingSalesman{ fileName }
+    {
+    }
 
     void Initialise();
 
@@ -32,7 +33,18 @@ public:
 
     bool Terminate();
 private:
-    AdjacencyMatrix<T>& env_;
+
+    template<typename RandomIt>
+    struct Selection
+    {
+        value_type& firstParent;
+        value_type& secondParent;
+        RandomIt nextIterator;
+    };
+
+    constexpr static std::size_t K = 2;
+
+    constexpr static double MutationProbabillity = 70.0;
 
     std::size_t populationSize_;
 
@@ -44,33 +56,105 @@ private:
 
     std::minstd_rand0 rng_{};
 
-    std::string_view* nameIndex_;
-
     template<typename RandomIt>
-    void CreateOffspring(
-        RandomIt firstA,
-        RandomIt lastA,
-        RandomIt firstB,
-        std::size_t offset,
-        std::size_t length,
-        RandomIt outIt)
+    Selection<RandomIt> Select(
+        RandomIt first,
+        RandomIt last)
     {
-        auto it = std::rotate_copy(
-            firstA,
-            firstA + offset,
-            lastA,
-            outIt);
+        if(first + K != last)
+        { 
+            // Find the first parent
+            auto it = SampleGroup(first, last, K, rng_);
+            auto minIt = std::min_element(
+                first,
+                it,
+                [](auto& a, auto& b)
+                {
+                   return a.cost < b.cost;
+                });
+            std::swap(first[0], *minIt);
 
-        auto i = offset + length;
-        for(; i < env_.Count() && it != outIt + env_.Count(); ++i)
-            if(std::find(outIt, outIt + length, firstB[i]) == outIt + length)
-                *(it++) = firstB[i];
-        
-        i %= env_.Count();
-        for(; i < offset && it != outIt + env_.Count(); ++i)
-            if (std::find(outIt, outIt + length, firstB[i]) == outIt + length)
-                *(it++) = firstB[i];
+            auto& parentA = first[0];
+
+            // Find the second parent
+            it = SampleGroup(first + 1, last, K, rng_);
+            minIt = std::min_element(
+                first + 1,
+                it,
+                [](auto& a, auto& b)
+                {
+                    return a.cost < b.cost;
+                });
+            std::swap(first[1], *minIt);
+        }
+
+        return Selection<RandomIt>{first[0], first[1], first + 2};
     }
+
+    std::pair<value_type, value_type> Crossover(
+        value_type& parentA,
+        value_type& parentB)
+    {
+        value_type tempA {0.0, std::make_unique<std::size_t[]>(Env().Count())};
+
+        std::uniform_int_distribution<std::size_t> d{ 0, Env().Count() - 1 };
+        auto const Offset = d(rng_);
+        auto const Length = d(rng_);
+
+        std::uniform_real_distribution<> realDis{0, 100};
+
+        Order1Crossover(
+            parentA.route.get(),
+            parentA.route.get() + Env().Count(),
+            parentB.route.get(),
+            Offset,
+            Length,
+            tempA.route.get());
+
+        if(realDis(rng_) <= 5)
+            std::shuffle(
+                tempA.route.get(),
+                tempA.route.get() + Env().Count(),
+                rng_);
+
+        value_type tempB{ 0.0, std::make_unique<std::size_t[]>(Env().Count())};
+        Order1Crossover(
+            parentB.route.get(),
+            parentB.route.get() + Env().Count(),
+            parentA.route.get(),
+            Offset,
+            Length,
+            tempB.route.get());
+
+        if (realDis(rng_) <= 5)
+            std::shuffle(
+                tempB.route.get(),
+                tempB.route.get() + Env().Count(),
+                rng_);
+
+        return {std::move(tempA), std::move(tempB)};
+    }
+
+    void Mutate(value_type& value)
+    {
+        std::uniform_real_distribution<> dis{0.0, 100.0};
+        if(dis(rng_) <= MutationProbabillity)
+            Opt2RandomSwap(
+                value.route.get(),
+                value.route.get() + Env().Count(),
+                rng_);
+    }
+
+    void Evaluate(value_type& value)
+    {
+        value.cost =  CostOf(
+            Env(),
+            value.route.get(),
+            value.route.get() + Env().Count());
+    }
+
+    //template<typename RanomItA, typename RandomItB>
+    //void SelectNext(RandomItA firstA, RandomItA lastB)
 };
 
 int main(int argc, char const** argv)
@@ -78,31 +162,8 @@ int main(int argc, char const** argv)
     char const* fileName = "sample/ulysses16.csv";
     if (argc == 2)
         fileName = argv[1];
-    auto data = ExtractDataFrom<CS3910ExtractTraits>(fileName);
-    auto nodeNames{ std::make_unique<std::string_view[]>(data.size()) };
-    std::transform(data.begin(), data.end(), nodeNames.get(), [](auto&& node)
-        {
-            return std::string_view{ node.id };
-        });
 
-    AdjacencyMatrix<double> graph{ data.size() };
-    for (auto i = data.begin(); i != data.end(); ++i)
-        for (auto j = i + 1; j != data.end(); ++j)
-            graph(std::distance(data.begin(), i),
-                std::distance(data.begin(), j)) =
-            std::hypot(i->x - j->x, i->y - j->y);
-
-    Simulate(CS3910EvolutionPolicy<double>{graph, nodeNames.get()});
-}
-
-template<typename T>
-CS3910EvolutionPolicy<T>::CS3910EvolutionPolicy(
-    AdjacencyMatrix<T>& env,
-    std::string_view* nameIndex)
-    noexcept
-    : env_{env}
-    , nameIndex_{nameIndex}
-{
+    Simulate(CS3910EvolutionPolicy<double>{fileName});
 }
 
 template<typename T>
@@ -110,7 +171,7 @@ void CS3910EvolutionPolicy<T>::Initialise()
 {
     best_ = std::numeric_limits<double>::infinity();
     iteration_ = 0;
-    populationSize_ = 10;
+    populationSize_ = 100;
     population_ = std::make_unique<value_type[]>(populationSize_);
 
     std::generate(
@@ -118,74 +179,43 @@ void CS3910EvolutionPolicy<T>::Initialise()
         population_.get() + populationSize_,
         [&]()
         {
-            value_type temp{0.0, std::make_unique<std::size_t[]>(env_.Count())};
-            std::iota(temp.route.get(), temp.route.get() + env_.Count(), 0);
-            std::shuffle(temp.route.get(), temp.route.get() + env_.Count(), rng_);
-            temp.cost = CostOf(env_, temp.route.get(), temp.route.get() + env_.Count());
+            value_type temp{0.0, std::make_unique<std::size_t[]>(Env().Count())};
+            std::iota(temp.route.get(), temp.route.get() + Env().Count(), 0);
+            std::shuffle(temp.route.get(), temp.route.get() + Env().Count(), rng_);
+            temp.cost = CostOf(Env(), temp.route.get(), temp.route.get() + Env().Count());
             return temp;
         });
-}
-
-template<typename RandomIt>
-void Recombine(RandomIt first, RandomIt last)
-{
 }
 
 template<typename T>
 void CS3910EvolutionPolicy<T>::Step()
 {
-    // Select
-    TournamentSelection(
-        population_.get(),
-        population_.get() + populationSize_,
-        2,
-        rng_,
-        [](auto& a, auto& b)
-        {
-            return a.cost < b.cost; 
-        });
-
     std::vector<value_type> nextGen{};
-
-    // Recombine
-    for(auto i = population_.get() + 1; i < population_.get() + populationSize_; i += 2)
+    for (auto it{ population_.get() }; it != population_.get() + populationSize_;)
     {
-        std::uniform_int_distribution<std::size_t> d{ 0, env_.Count() - 1 };
-        auto const Offset = d(rng_);
-        auto const Length = d(rng_);
-        auto tempA {std::make_unique<std::size_t[]>(env_.Count())};
-        auto tempB {std::make_unique<std::size_t[]>(env_.Count())};
+        auto [parentA, parentB, next] = Select(it, population_.get() + populationSize_);
+        it = next;
 
-        CreateOffspring(
-            i[-1].route.get(),
-            i[-1].route.get() + env_.Count(),
-            i[0].route.get(),
-            Offset,
-            Length,
-            tempA.get());
+        auto [childA, childB] = Crossover(parentA, parentB);
+        Mutate(childA);
+        Mutate(childB);
 
-        CreateOffspring(
-            i[0].route.get(),
-            i[0].route.get() + env_.Count(),
-            i[-1].route.get(),
-            Offset,
-            Length,
-            tempB.get());
+        Evaluate(childA);
+        Evaluate(childB);
 
-        // Mutation
-        Opt2RandomSwap(tempA.get(), tempA.get() + env_.Count(), rng_);
-        Opt2RandomSwap(tempB.get(), tempB.get() + env_.Count(), rng_);
-
-        // Evaluate
-        nextGen.emplace_back(value_type{
-            CostOf(env_, tempA.get(), tempA.get() + env_.Count()),
-            std::move(tempA) });
-        nextGen.emplace_back(value_type{
-            CostOf(env_, tempB.get(), tempB.get() + env_.Count()),
-            std::move(tempB) });
+        nextGen.emplace_back(std::move(childA));
+        nextGen.emplace_back(std::move(childB));
     }
+
     
     // New generation
+    //std::sort(
+    //    population_.get(),
+    //    population_.get() + populationSize_,
+    //    [](auto& a, auto&b)
+    //    {
+    //        return a < b;
+    //    });
     std::move(nextGen.begin(), nextGen.end(), population_.get());
 
     auto it = std::min_element(
@@ -199,13 +229,8 @@ void CS3910EvolutionPolicy<T>::Step()
     if (it != population_.get() + populationSize_ && it->cost < best_)
     {
         best_ = it->cost;
-        std::cout << iteration_ << ": " << it->cost << " [";
-        std::cout << nameIndex_[it->route[0]];
-        std::for_each(it->route.get() + 1, it->route.get() + env_.Count(), [&](auto& x)
-            {
-                std::cout << ' ' << nameIndex_[x];
-            });
-        std::cout << "]\n";
+        std::cout << iteration_ << ": " << it->cost << " ";
+        Show(std::cout, it->route.get(), it->route.get() + Env().Count());
     }
 }
 
