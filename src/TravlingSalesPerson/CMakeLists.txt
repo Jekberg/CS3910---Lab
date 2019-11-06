@@ -18,9 +18,10 @@ target_include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})
 
-target_link_libraries(ACOTSP
+target_link_libraries(
+    ACOTSP
     PRIVATE
-    tbb)
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:tbb>)
 
 add_executable(
     EvoTSP

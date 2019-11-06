@@ -1,4 +1,5 @@
 #include "Extract.h"
+#include "TravlingSalesman.h"
 #include "CS3910/Graph.h"
 #include "CS3910/Pheromone.h"
 #include "CS3910/Simulation.h"
@@ -10,7 +11,7 @@
 #include <string_view>
 
 template<typename T>
-class CS3910AntSystemPolicy
+class CS3910AntSystemPolicy: private TravlingSalesman
 {
 public:
     using value_type = struct
@@ -86,7 +87,7 @@ int main(int argc, char const** argv)
                 std::hypot(i->x - j->x, i->y - j->y);
     
 
-    Simulation<CS3910AntSystemPolicy<double>>{graph, nodeNames.get()}.Run();
+    Simulate(CS3910AntSystemPolicy<double>{graph, nodeNames.get()});
 }
 
 template<typename T>

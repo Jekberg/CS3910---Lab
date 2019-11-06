@@ -5,7 +5,6 @@
 #include <memory>
 #include <random>
 #include <iterator>
-#include <valarray>
 
 class CS3910ParticleSwarmPolicy
 {
@@ -116,10 +115,6 @@ private:
 
     template<typename RandomIt, typename RngT>
     void Place(RandomIt first, RandomIt last, RngT& rng);
-
-    template<typename RngT>
-    std::valarray<double> RandomVec(RngT& rng);
-
 };
 
 int main(int argc, char const** argv)
@@ -131,11 +126,11 @@ int main(int argc, char const** argv)
             << "The second argument is the steering angle\n"
             << "\n\n"
             << "Running PSO with 3 antennae and 90.0 steering angle...\n";
-    AntennaArray arr{10, 90.0};
+    AntennaArray arr{4, 90.0};
 
 
     std::cout << "Running...\n";
-    Simulation<CS3910ParticleSwarmPolicy>{arr}.Run();
+    Simulate(CS3910ParticleSwarmPolicy{arr});
 }
 
 CS3910ParticleSwarmPolicy::CS3910ParticleSwarmPolicy(AntennaArray& env)
@@ -217,22 +212,15 @@ void CS3910ParticleSwarmPolicy::Update(
     double const* globalBest,
     RngT& rng)
 {
-    std::valarray<double> const v{velocity, env_.count() - 1};
-    std::valarray<double> const x{position, env_.count() - 1};
-    std::valarray<double> const p{personalBest, env_.count() - 1};
-    std::valarray<double> const g{globalBest, env_.count() - 1};
-    auto const r1 = RandomVec(rng);
-    auto const r2 = RandomVec(rng);
+    std::uniform_real_distribution<> d{0.0, 1.0};
 
-    std::valarray<double> newV = n * v + o1 * r1 *(p - x) + o2 * r2 * (g - x);
-    std::copy(std::begin(newV), std::end(newV), velocity);
-    std::transform(
-        std::execution::unseq,
-        std::begin(newV),
-        std::end(newV),
-        position,
-        position,
-        std::plus<double>{});
+    for (auto i = 0; i < env_.count() - 1; ++i)
+    {
+        velocity[i] = n * velocity[i]
+            + o1 * d(rng) * (globalBest[i] - position[i])
+            + o2 * d(rng) * (personalBest[i] - position[i]);
+        position[i] += velocity[i];
+    }
 
     Fix(position, position + env_.count());
 }
@@ -262,16 +250,4 @@ void CS3910ParticleSwarmPolicy::Place(RandomIt first, RandomIt last, RngT& rng)
 bool CS3910ParticleSwarmPolicy::Terminate()
 {
     return 10000 < iteration_++;
-}
-
-template<typename RngT>
-std::valarray<double> CS3910ParticleSwarmPolicy::RandomVec(RngT& rng)
-{
-    auto temp{std::make_unique<double[]>(env_.count() - 1)};
-    std::uniform_real_distribution<> dist{0.0, 1.0};
-    std::for_each(temp.get(), temp.get() + env_.count() - 1, [&](auto& x)
-    {
-        x = dist(rng);
-    });
-    return std::valarray<double>{temp.get(), env_.count() - 1};
 }

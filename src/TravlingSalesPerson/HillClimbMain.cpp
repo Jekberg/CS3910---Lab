@@ -63,7 +63,7 @@ int main(int argc, char const** argv)
                 std::distance(data.begin(), j)) =
                 std::hypot(i->x - j->x, i->y - j->y);
 
-    Simulation<CS3910HillClimbPolicy<double>>{graph, nodeNames.get()}.Run();
+    Simulate(CS3910HillClimbPolicy<double>{graph, nodeNames.get()});
 }
 
 template<typename T>

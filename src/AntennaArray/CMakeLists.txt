@@ -12,4 +12,4 @@ target_include_directories(
 target_link_libraries(
     AntennaArray
     PRIVATE
-        tbb)
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:tbb>)
