@@ -5,6 +5,7 @@
 #include <memory>
 #include <random>
 #include <iterator>
+#include <sstream>
 
 class CS3910ParticleSwarmPolicy
 {
@@ -20,7 +21,18 @@ public:
         std::minstd_rand0 rng{};
     };
 
-    explicit CS3910ParticleSwarmPolicy(AntennaArray& env) noexcept;
+    struct Parameters
+    {
+        std::size_t populationSize;
+        std::size_t iterations;
+        double n;
+        double o1;
+        double o2;
+    };
+
+    explicit CS3910ParticleSwarmPolicy(
+        AntennaArray& env,
+        Parameters const& params) noexcept;
 
     void Initialise();
 
@@ -32,15 +44,6 @@ public:
 
     bool Terminate();
 private:
-    // Inertia
-    inline static double const n = 1.0 / (2.0 * std::log(2));
-
-    // 
-    inline static double const o1 = 1.0 / 2.0 + std::log(2);
-
-    // 
-    inline static double const o2 = 1.0 / 2.0 + std::log(2);
-
     AntennaArray& env_;
 
     std::unique_ptr<value_type[]> population_;
@@ -49,9 +52,9 @@ private:
 
     Vector bestPosition_;
 
-    std::size_t const populationSize_;
-
     std::size_t iteration_;
+
+    Parameters params_;
 
     template<typename RngT>
     void Update(
@@ -66,14 +69,14 @@ private:
         auto it = std::min_element(
             std::execution::par,
             population_.get(),
-            population_.get() + populationSize_,
+            population_.get() + params_.populationSize,
             [=](auto& a, auto& b) noexcept
             {
                 return a.sll < b.sll;
             });
 
 
-        if (it != population_.get() + populationSize_ && it->sll < bestSLL_)
+        if (it != population_.get() + params_.populationSize && it->sll < bestSLL_)
         {
             bestSLL_ = it->sll;
             std::copy_n(it->position.get(), env_.count(), bestPosition_.get());
@@ -119,6 +122,8 @@ private:
 
 int main(int argc, char const** argv)
 {
+    unsigned int arrayCount = 3;
+    double angle = 90.0;
     if(argc < 3)
         std::cout
             << "Minimum number of arguments is 2.\n"
@@ -126,17 +131,35 @@ int main(int argc, char const** argv)
             << "The second argument is the steering angle\n"
             << "\n\n"
             << "Running PSO with 3 antennae and 90.0 steering angle...\n";
-    AntennaArray arr{4, 90.0};
+    else
+    {
+        std::istringstream ss{};
+        ss.str(argv[1]);
+        ss >> arrayCount;
+        ss.str(argv[2]);
+        ss >> angle;
+    }
 
+    AntennaArray arr{arrayCount, angle};
+
+    using ParticleSwarmPolicy = CS3910ParticleSwarmPolicy;
+    typename ParticleSwarmPolicy::Parameters params{};
+    params.populationSize = 20 + std::sqrt(arr.count());
+    params.iterations = 10000;
+    params.n = 1.0 / (2.0 * std::log(2));
+    params.o1 = 1.0 / 2.0 + std::log(2);
+    params.o2 = 1.0 / 2.0 + std::log(2);
 
     std::cout << "Running...\n";
-    Simulate(CS3910ParticleSwarmPolicy{arr});
+    Simulate(CS3910ParticleSwarmPolicy{arr, params});
 }
 
-CS3910ParticleSwarmPolicy::CS3910ParticleSwarmPolicy(AntennaArray& env)
+CS3910ParticleSwarmPolicy::CS3910ParticleSwarmPolicy(
+    AntennaArray& env,
+    Parameters const& params)
     noexcept
     : env_{env}
-    , populationSize_{static_cast<std::size_t>(20 + std::sqrt(env.count()))}
+    , params_{params}
 {
 }
 
@@ -146,11 +169,11 @@ void CS3910ParticleSwarmPolicy::Initialise()
     bestSLL_ = std::numeric_limits<double>::infinity();
     bestPosition_ = std::make_unique<double[]>(env_.count());
 
-    population_ = std::make_unique<value_type[]>(populationSize_);
+    population_ = std::make_unique<value_type[]>(params_.populationSize);
     std::random_device rng{};
     std::for_each(
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [&](auto& particle)
     {
         particle.rng.seed(rng());
@@ -162,7 +185,7 @@ void CS3910ParticleSwarmPolicy::Initialise()
 
         particle.bestPosition = std::make_unique<double[]>(env_.count());
         std::copy_n(particle.position.get(), env_.count(), particle.bestPosition.get());
-        
+
         particle.sll = env_.evaluate(
             particle.position.get(),
             particle.position.get() + env_.count());
@@ -177,7 +200,7 @@ void CS3910ParticleSwarmPolicy::Step()
     std::for_each(
         std::execution::par,
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [&](auto& particle)
     {
         // Move particle
@@ -191,7 +214,6 @@ void CS3910ParticleSwarmPolicy::Step()
         particle.sll = env_.evaluate(
             particle.position.get(),
             particle.position.get() + env_.count());
-
 
         if(particle.sll < particle.bestSLL)
         {
@@ -216,9 +238,9 @@ void CS3910ParticleSwarmPolicy::Update(
 
     for (auto i = 0; i < env_.count() - 1; ++i)
     {
-        velocity[i] = n * velocity[i]
-            + o1 * d(rng) * (globalBest[i] - position[i])
-            + o2 * d(rng) * (personalBest[i] - position[i]);
+        velocity[i] = params_.n * velocity[i]
+            + params_.o1 * d(rng) * (globalBest[i] - position[i])
+            + params_.o2 * d(rng) * (personalBest[i] - position[i]);
         position[i] += velocity[i];
     }
 
@@ -241,7 +263,6 @@ void CS3910ParticleSwarmPolicy::Place(RandomIt first, RandomIt last, RngT& rng)
             x = std::uniform_real_distribution<>{Min, Max}(rng);
         });
 
-
         Fix(first, last + 1);
     }
     while (!env_.is_valid(first, last + 1));
@@ -249,5 +270,5 @@ void CS3910ParticleSwarmPolicy::Place(RandomIt first, RandomIt last, RngT& rng)
 
 bool CS3910ParticleSwarmPolicy::Terminate()
 {
-    return 10000 < iteration_++;
+    return params_.iterations < iteration_++;
 }

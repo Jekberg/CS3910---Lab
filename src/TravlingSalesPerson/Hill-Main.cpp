@@ -7,7 +7,6 @@
 #include <numeric>
 #include <random>
 #include <string>
-#include <string_view>
 
 template<typename T>
 class CS3910HillClimbPolicy final : private TravlingSalesman<T>
@@ -19,10 +18,14 @@ public:
         std::unique_ptr<std::size_t[]> route;
     };
 
-    explicit CS3910HillClimbPolicy(char const* fileName)
-        : TravlingSalesman<T>{ fileName }
+    struct Parameters
     {
-    }
+        std::size_t iterations;
+    };
+
+    explicit CS3910HillClimbPolicy(
+        char const* fileName,
+        Parameters const& params);
 
     void Initialise();
 
@@ -35,25 +38,45 @@ private:
 
     value_type x_;
 
-    std::random_device rng_{};
+    std::minstd_rand0 rng_{};
+
+    std::size_t iteration_{};
 
     double best_;
 
-    std::size_t iteration_{};
+    Parameters params_;
 };
 
 int main(int argc, char const** argv)
 {
     char const* fileName = "sample/ulysses16.csv";
-    if(argc == 2)
+    if(1 < argc)
         fileName = argv[1];
+    else
+        std::cout << "No input file provided as argument 1\n"
+            << "running local optimisation using " << fileName << '\n';
 
-    Simulate(CS3910HillClimbPolicy<double>{fileName});
+    using HillClimbingPolicy = CS3910HillClimbPolicy<double>;
+    typename HillClimbingPolicy::Parameters params{};
+    params.iterations = 100000;
+
+    std::cout << "Running...\n";
+    Simulate(HillClimbingPolicy{fileName, params});
+}
+
+template<typename T>
+CS3910HillClimbPolicy<T>::CS3910HillClimbPolicy(
+    char const* fileName,
+    Parameters const& params)
+    : TravlingSalesman<T>{ fileName }
+    , params_{params}
+{
 }
 
 template<typename T>
 void CS3910HillClimbPolicy<T>::Initialise()
 {
+    rng_.seed(std::random_device{}());
     best_ = std::numeric_limits<double>::infinity();
     x_ = {0.0, std::make_unique<std::size_t[]>(this->Env().Count())};
     std::iota(x_.route.get(), x_.route.get() + this->Env().Count(), 0);
@@ -107,5 +130,5 @@ void CS3910HillClimbPolicy<T>::Step()
 template<typename T>
 bool CS3910HillClimbPolicy<T>::Terminate()
 {
-    return 100000 <= iteration_++;
+    return params_.iterations <= iteration_++;
 }

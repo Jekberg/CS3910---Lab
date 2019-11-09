@@ -1,34 +1,44 @@
 add_executable(
-    HillClimbTSP
-    "HillClimbMain.cpp")
+    "RNG-TSP"
+    "RNG-Main.cpp")
 
 target_include_directories(
-    HillClimbTSP
+    "RNG-TSP"
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})
 
 add_executable(
-    ACOTSP
-    "ACOMain.cpp")
+    "Hill-TSP"
+    "Hill-Main.cpp")
 
 target_include_directories(
-    ACOTSP
+    "Hill-TSP"
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CS3910_INCLUDE_DIR})
+
+add_executable(
+    "ACO-TSP"
+    "ACO-Main.cpp")
+
+target_include_directories(
+    "ACO-TSP"
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})
 
 target_link_libraries(
-    ACOTSP
+    "ACO-TSP"
     PRIVATE
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:tbb>)
 
 add_executable(
-    EvoTSP
-    "EvoMain.cpp")
+    "EA-TSP"
+    "EA-Main.cpp")
 
 target_include_directories(
-    EvoTSP
+    "EA-TSP"
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CS3910_INCLUDE_DIR})

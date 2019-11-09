@@ -7,7 +7,6 @@
 #include <iostream>
 #include <numeric>
 #include <random>
-#include <string_view>
 
 template<typename T>
 class CS3910AntSystemPolicy: private TravlingSalesman<T>
@@ -20,10 +19,20 @@ public:
         std::minstd_rand0 rng{};
     };
 
-    explicit CS3910AntSystemPolicy(char const* fileName)
-        : TravlingSalesman<T>{ fileName }
+    struct Parameters
     {
-    }
+        std::size_t populationSize;
+        std::size_t iterations;
+        double t0; // Initial pheromone level
+        double p; // Rate of evaporation
+        double q; // Rate of deposition
+        double a; // Relative importance of phermonone
+        double b; // Relative importance of edge weight
+    };
+
+    explicit CS3910AntSystemPolicy(
+        char const* fileName,
+        Parameters const& params);
 
     void Initialise();
 
@@ -35,28 +44,14 @@ public:
 
     bool Terminate() noexcept;
 private:
-    // Initial Pheromone Level
-    constexpr static double t0_ = 0.001;
-
-    // Rate of evaporation
-    constexpr static double p_ = 0.5;
-
-    // Rate of deposition
-    constexpr static double q_ = 100.0;
-
-    // Relative importance of phermonone
-    constexpr static double a_ = 1.0;
-
-    // Relative importance of edge weight
-    constexpr static double b_ = 5.0;
 
     std::unique_ptr<value_type[]> population_;
-
-    std::size_t const populationSize_ = 100;
 
     std::size_t iteration_;
 
     T best_;
+
+    Parameters params_;
 
     template<typename RandomIt, typename RngT>
     void Construct(RandomIt first, RandomIt last, RngT& rng);
@@ -65,9 +60,32 @@ private:
 int main(int argc, char const** argv)
 {
     char const* fileName = "sample/ulysses16.csv";
-    if(argc == 2)
+    if(1 < argc)
         fileName = argv[1];
-    Simulate(CS3910AntSystemPolicy<double>{fileName});
+    else
+        std::cout << "No input file provided as argument 1\n"
+            << "running ant colony optimisation using " << fileName << '\n';
+    using AntSystemPolicy = CS3910AntSystemPolicy<double>;
+    typename AntSystemPolicy::Parameters params{};
+    params.populationSize = 100;
+    params.iterations = 100000;
+    params.t0 = 0.001;
+    params.p = 0.5;
+    params.q = 100.0;
+    params.a = 1.0;
+    params.b = 5.0;
+
+    std::cout << "Running...\n";
+    Simulate(CS3910AntSystemPolicy<double>{fileName, params});
+}
+
+template<typename T>
+CS3910AntSystemPolicy<T>::CS3910AntSystemPolicy(
+    char const* fileName,
+    Parameters const& params)
+    : TravlingSalesman<T>{ fileName }
+    , params_{params}
+{
 }
 
 template<typename T>
@@ -75,11 +93,11 @@ void CS3910AntSystemPolicy<T>::Initialise()
 {
     best_ = std::numeric_limits<T>::infinity();
     iteration_ = 0;
-    population_ = std::make_unique<value_type[]>(populationSize_);
+    population_ = std::make_unique<value_type[]>(params_.populationSize);
     std::random_device rng{};
     std::for_each(
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [&](auto& ant)
         {
             ant.cost = 0.0;
@@ -93,7 +111,7 @@ void CS3910AntSystemPolicy<T>::Initialise()
 
     for (auto i{1}; i < this->Env().Count(); ++i)
         for (auto j{i + 1}; j < this->Env().Count(); ++j)
-            Pheromone(this->Env(), i, j) = t0_;
+            Pheromone(this->Env(), i, j) = params_.t0;
 }
 
 template<typename T>
@@ -102,7 +120,7 @@ void CS3910AntSystemPolicy<T>::Step()
     std::for_each(
         std::execution::par,
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [&](auto& ant)
     {
         auto& [cost, route, rng] = ant;
@@ -113,31 +131,30 @@ void CS3910AntSystemPolicy<T>::Step()
             route.get() + this->Env().Count());
     });
 
-    DecayPheromone(this->Env(), p_);
+    DecayPheromone(this->Env(), params_.p);
 
     std::for_each(
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [&](auto& ant)
         {
             auto& [cost, route , rng] = ant;
             IncreasePheromone(
                 this->Env(),
-                q_/cost,
+                params_.q / cost,
                 route.get(),
                 route.get() + this->Env().Count());
         });
 
-
     auto it = std::min_element(
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [=](auto& a, auto& b)
         {
             return a.cost < b.cost;
         });
 
-    if(it != population_.get() + populationSize_ && it->cost < best_)
+    if(it != population_.get() + params_.populationSize && it->cost < best_)
     {
         best_ = it->cost;
         std::cout << iteration_ << ": " << it->cost << " ";
@@ -166,8 +183,8 @@ void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last, RngT& rn
             last,
             [&](auto const next) noexcept
             {
-                edgeDesire[next] = std::pow(Pheromone(this->Env(), pivot, next), a_)
-                    * std::pow(Weight(this->Env(), pivot, next), -b_);
+                edgeDesire[next] = std::pow(Pheromone(this->Env(), pivot, next), params_.a)
+                    * std::pow(Weight(this->Env(), pivot, next), -params_.b);
             });
 
         auto const total = std::accumulate(
@@ -192,5 +209,5 @@ void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last, RngT& rn
 template<typename T>
 bool CS3910AntSystemPolicy<T>::Terminate() noexcept
 {
-    return 100000 < iteration_++;
+    return params_.iterations < iteration_++;
 }

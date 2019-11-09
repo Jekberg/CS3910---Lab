@@ -184,8 +184,11 @@ private:
 int main(int argc, char const** argv)
 {
     char const* fileName = "sample/ulysses16.csv";
-    if (argc == 2)
+    if(1 < argc)
         fileName = argv[1];
+    else
+        std::cout << "No input file provided as argument 1\n"
+            << "running the evolutionary algorithm using " << fileName << '\n';
 
     using EvolutionPolicy = CS3910EvolutionPolicy<double>;
     typename EvolutionPolicy::Parameters params{};
@@ -195,6 +198,8 @@ int main(int argc, char const** argv)
     params.iterations = 100000;
     params.randomGenerationProbabillity = 5;
     params.mutationProbabillity = 70;
+
+    std::cout << "Running...\n";
     Simulate(EvolutionPolicy{fileName, params});
 }
 
