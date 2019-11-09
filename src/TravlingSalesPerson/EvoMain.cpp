@@ -20,10 +20,19 @@ public:
         std::unique_ptr<std::size_t[]> route;
     };
 
-    explicit CS3910EvolutionPolicy(char const* fileName)
-        : TravlingSalesman<T>{ fileName }
+    struct Parameters
     {
-    }
+        std::size_t k;
+        std::size_t populationSize;
+        std::size_t eliteSize;
+        std::size_t iterations;
+        double randomGenerationProbabillity;
+        double mutationProbabillity;
+    };
+
+    explicit CS3910EvolutionPolicy(
+        char const* fileName,
+        Parameters const& params);
 
     void Initialise();
 
@@ -42,11 +51,7 @@ private:
         RandomIt nextIterator;
     };
 
-    constexpr static std::size_t K = 2;
-
-    constexpr static double MutationProbabillity = 70.0;
-
-    std::size_t populationSize_;
+    Parameters params_;
 
     std::unique_ptr<value_type[]> population_;
 
@@ -54,30 +59,27 @@ private:
 
     std::size_t iteration_;
 
-    std::minstd_rand0 rng_{};
+    std::minstd_rand rng_{};
 
     template<typename RandomIt>
     Selection<RandomIt> Select(
         RandomIt first,
         RandomIt last)
     {
-        if(first + K != last)
+        if(first + params_.k != last)
         {
             // Find the first parent
-            auto it = SampleGroup(first, last, K, rng_);
+            auto it = SampleGroup(first, last, params_.k, rng_);
             auto minIt = std::min_element(
                 first,
                 it,
-                [](auto& a, auto& b)
-                {
-                   return a.cost < b.cost;
-                });
+                [](auto& a, auto& b){ return a.cost < b.cost; });
             std::swap(first[0], *minIt);
 
             auto& parentA = first[0];
 
             // Find the second parent
-            it = SampleGroup(first + 1, last, K, rng_);
+            it = SampleGroup(first + 1, last, params_.k, rng_);
             minIt = std::min_element(
                 first + 1,
                 it,
@@ -115,7 +117,7 @@ private:
             Length,
             tempA.route.get());
 
-        if(realDis(rng_) <= 5)
+        if(realDis(rng_) <= params_.randomGenerationProbabillity)
             std::shuffle(
                 tempA.route.get(),
                 tempA.route.get() + this->Env().Count(),
@@ -132,7 +134,7 @@ private:
             Length,
             tempB.route.get());
 
-        if (realDis(rng_) <= 5)
+        if (realDis(rng_) <= params_.randomGenerationProbabillity)
             std::shuffle(
                 tempB.route.get(),
                 tempB.route.get() + this->Env().Count(),
@@ -144,7 +146,7 @@ private:
     void Mutate(value_type& value)
     {
         std::uniform_real_distribution<> dis{0.0, 100.0};
-        if(dis(rng_) <= MutationProbabillity)
+        if(dis(rng_) <= params_.mutationProbabillity)
             Opt2RandomSwap(
                 value.route.get(),
                 value.route.get() + this->Env().Count(),
@@ -159,8 +161,24 @@ private:
             value.route.get() + this->Env().Count());
     }
 
-    //template<typename RanomItA, typename RandomItB>
-    //void SelectNext(RandomItA firstA, RandomItA lastB)
+    template<typename RandomIt>
+    void SelectNext(
+        RandomIt first,
+        RandomIt last)
+    {
+        auto const PopulationEnd = population_.get() + params_.populationSize;
+        for(auto i = population_.get(); i != population_.get() + params_.eliteSize; ++i)
+        {
+            auto it = Roulette(
+                i,
+                PopulationEnd,
+                rng_,
+                [](auto& path){return 1 / path.cost;});
+            std::swap(*i, *it);
+        }
+
+        MoveRandom(first, last, population_.get() + params_.eliteSize, PopulationEnd, rng_);
+    }
 };
 
 int main(int argc, char const** argv)
@@ -169,7 +187,24 @@ int main(int argc, char const** argv)
     if (argc == 2)
         fileName = argv[1];
 
-    Simulate(CS3910EvolutionPolicy<double>{fileName});
+    using EvolutionPolicy = CS3910EvolutionPolicy<double>;
+    typename EvolutionPolicy::Parameters params{};
+    params.k = 2;
+    params.populationSize = 100;
+    params.eliteSize = 99; // Stable
+    params.iterations = 100000;
+    params.randomGenerationProbabillity = 5;
+    params.mutationProbabillity = 70;
+    Simulate(EvolutionPolicy{fileName, params});
+}
+
+template<typename T>
+CS3910EvolutionPolicy<T>::CS3910EvolutionPolicy(
+    char const* fileName,
+    Parameters const& params)
+    : TravlingSalesman<T>{ fileName }
+    , params_{params}
+{
 }
 
 template<typename T>
@@ -177,12 +212,13 @@ void CS3910EvolutionPolicy<T>::Initialise()
 {
     best_ = std::numeric_limits<double>::infinity();
     iteration_ = 0;
-    populationSize_ = 100;
-    population_ = std::make_unique<value_type[]>(populationSize_);
+    population_ = std::make_unique<value_type[]>(params_.populationSize);
+
+    rng_.seed(std::random_device{}());
 
     std::generate(
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [&]()
         {
             value_type temp{
@@ -208,9 +244,9 @@ template<typename T>
 void CS3910EvolutionPolicy<T>::Step()
 {
     std::vector<value_type> nextGen{};
-    for (auto it{ population_.get() }; it != population_.get() + populationSize_;)
+    for (auto it{ population_.get() }; it != population_.get() + params_.populationSize;)
     {
-        auto [parentA, parentB, next] = Select(it, population_.get() + populationSize_);
+        auto [parentA, parentB, next] = Select(it, population_.get() + params_.populationSize);
         it = next;
 
         auto [childA, childB] = Crossover(parentA, parentB);
@@ -224,26 +260,17 @@ void CS3910EvolutionPolicy<T>::Step()
         nextGen.emplace_back(std::move(childB));
     }
 
-
-    // New generation
-    //std::sort(
-    //    population_.get(),
-    //    population_.get() + populationSize_,
-    //    [](auto& a, auto&b)
-    //    {
-    //        return a < b;
-    //    });
-    std::move(nextGen.begin(), nextGen.end(), population_.get());
+    SelectNext(nextGen.begin(), nextGen.end());
 
     auto it = std::min_element(
         population_.get(),
-        population_.get() + populationSize_,
+        population_.get() + params_.populationSize,
         [](auto& a, auto& b)
         {
             return a.cost < b.cost;
         });
 
-    if (it != population_.get() + populationSize_ && it->cost < best_)
+    if (it != population_.get() + params_.populationSize && it->cost < best_)
     {
         best_ = it->cost;
         std::cout << iteration_ << ": " << it->cost << " ";
@@ -257,5 +284,5 @@ void CS3910EvolutionPolicy<T>::Step()
 template<typename T>
 bool CS3910EvolutionPolicy<T>::Terminate()
 {
-    return 1000000 < iteration_++;
+    return params_.iterations < iteration_++;
 }

@@ -61,4 +61,42 @@ RandomIt SampleGroup(RandomIt first, RandomIt last, std::size_t k, RngT& rng)
     return first + k;
 }
 
+template<typename ForwardIt, typename RngT, typename F>
+ForwardIt Roulette(ForwardIt first, ForwardIt last, RngT& rng, F&& f)
+{
+    auto const Total = std::accumulate(
+        first,
+        last,
+        double{}, [&](auto&& acc, auto&& x)
+        {
+            return acc + f(x);
+        });
+
+    auto r = std::uniform_real_distribution<>{0.0, Total}(rng);
+    for(auto i = first; i != last; ++i)
+        if(Total <= (r += f(*i)))
+            return i;
+    return last;
+}
+
+template<typename RandomItFrom, typename ForwardItTo, typename RngT>
+void MoveRandom(
+    RandomItFrom firstFrom,
+    RandomItFrom lastFrom,
+    ForwardItTo firstTo,
+    ForwardItTo lastTo,
+    RngT& rng)
+{
+    for(; firstFrom != lastFrom && firstTo != lastTo; ++firstFrom, ++firstTo)
+    {
+        auto const Length{static_cast<std::size_t>(std::distance(
+            firstFrom,
+            lastFrom))};
+        auto dis {std::uniform_int_distribution<std::size_t>{0, Length - 1}};
+        auto toMoveIt = firstFrom + dis(rng);
+        std::swap(*firstFrom, *toMoveIt);
+        *firstTo = std::move(*firstFrom);
+    }
+}
+
 #endif // !CS3910__EVOLUTION_H_
