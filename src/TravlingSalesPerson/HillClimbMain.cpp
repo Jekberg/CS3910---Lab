@@ -20,19 +20,19 @@ public:
     };
 
     explicit CS3910HillClimbPolicy(char const* fileName)
-        : TravlingSalesman{ fileName }
+        : TravlingSalesman<T>{ fileName }
     {
     }
 
     void Initialise();
-    
+
     void Step();
 
     void Complete() noexcept {}
 
     bool Terminate();
 private:
-    
+
     value_type x_;
 
     std::random_device rng_{};
@@ -55,8 +55,8 @@ template<typename T>
 void CS3910HillClimbPolicy<T>::Initialise()
 {
     best_ = std::numeric_limits<double>::infinity();
-    x_ = {0.0, std::make_unique<std::size_t[]>(Env().Count())};
-    std::iota(x_.route.get(), x_.route.get() + Env().Count(), 0);
+    x_ = {0.0, std::make_unique<std::size_t[]>(this->Env().Count())};
+    std::iota(x_.route.get(), x_.route.get() + this->Env().Count(), 0);
 }
 
 template<typename T>
@@ -64,21 +64,21 @@ void CS3910HillClimbPolicy<T>::Step()
 {
     std::size_t bestI;
     std::size_t bestJ;
-    std::shuffle(x_.route.get() + 1, x_.route.get() + Env().Count(), rng_);
-    
+    std::shuffle(x_.route.get() + 1, x_.route.get() + this->Env().Count(), rng_);
+
     T localBest = std::numeric_limits<T>::infinity();
     do
     {
         bestI = 0;
         bestJ = 0;
-        for(std::size_t i{1}; i < Env().Count(); ++i)
-            for (std::size_t j{ i + 1 }; j < Env().Count(); ++j)
+        for(std::size_t i{1}; i < this->Env().Count(); ++i)
+            for (std::size_t j{ i + 1 }; j < this->Env().Count(); ++j)
             {
                 std::swap(x_.route[i], x_.route[j]);
                 x_.cost = CostOf(
-                    Env(),
+                    this->Env(),
                     x_.route.get(),
-                    x_.route.get() + Env().Count());
+                    x_.route.get() + this->Env().Count());
                 if (x_.cost < localBest)
                 {
                     localBest = x_.cost;
@@ -93,12 +93,14 @@ void CS3910HillClimbPolicy<T>::Step()
     }
     while(bestI != bestJ);
 
-
     if (localBest < best_)
     {
         best_ = localBest;
         std::cout << iteration_ << ": " << best_ << ' ';
-        Show(std::cout, x_.route.get(), x_.route.get() + Env().Count());
+        this->Show(
+            std::cout,
+            x_.route.get(),
+            x_.route.get() + this->Env().Count());
     }
 }
 

@@ -54,7 +54,7 @@ private:
     AdjacencyMatrix<T> env_;
 
     template<typename Container>
-    static AdjacencyMatrix<T> ReadGraphFromFile(
+    static inline AdjacencyMatrix<T> ReadGraphFromFile(
         char const* fileName,
         Container&& container);
 };
@@ -101,7 +101,7 @@ TravlingSalesman<T>::Node(std::size_t id)
 
 template<typename T>
 template<typename Container>
-static AdjacencyMatrix<T> TravlingSalesman<T>::ReadGraphFromFile(
+AdjacencyMatrix<T> TravlingSalesman<T>::ReadGraphFromFile(
     char const* fileName,
     Container&& container)
 {

@@ -21,7 +21,7 @@ public:
     };
 
     explicit CS3910EvolutionPolicy(char const* fileName)
-        : TravlingSalesman{ fileName }
+        : TravlingSalesman<T>{ fileName }
     {
     }
 
@@ -62,7 +62,7 @@ private:
         RandomIt last)
     {
         if(first + K != last)
-        { 
+        {
             // Find the first parent
             auto it = SampleGroup(first, last, K, rng_);
             auto minIt = std::min_element(
@@ -95,9 +95,13 @@ private:
         value_type& parentA,
         value_type& parentB)
     {
-        value_type tempA {0.0, std::make_unique<std::size_t[]>(Env().Count())};
+        value_type tempA {
+            0.0,
+            std::make_unique<std::size_t[]>(this->Env().Count())};
 
-        std::uniform_int_distribution<std::size_t> d{ 0, Env().Count() - 1 };
+        std::uniform_int_distribution<std::size_t> d{
+            0,
+            this->Env().Count() - 1 };
         auto const Offset = d(rng_);
         auto const Length = d(rng_);
 
@@ -105,7 +109,7 @@ private:
 
         Order1Crossover(
             parentA.route.get(),
-            parentA.route.get() + Env().Count(),
+            parentA.route.get() + this->Env().Count(),
             parentB.route.get(),
             Offset,
             Length,
@@ -114,13 +118,15 @@ private:
         if(realDis(rng_) <= 5)
             std::shuffle(
                 tempA.route.get(),
-                tempA.route.get() + Env().Count(),
+                tempA.route.get() + this->Env().Count(),
                 rng_);
 
-        value_type tempB{ 0.0, std::make_unique<std::size_t[]>(Env().Count())};
+        value_type tempB{
+            0.0,
+            std::make_unique<std::size_t[]>(this->Env().Count())};
         Order1Crossover(
             parentB.route.get(),
-            parentB.route.get() + Env().Count(),
+            parentB.route.get() + this->Env().Count(),
             parentA.route.get(),
             Offset,
             Length,
@@ -129,7 +135,7 @@ private:
         if (realDis(rng_) <= 5)
             std::shuffle(
                 tempB.route.get(),
-                tempB.route.get() + Env().Count(),
+                tempB.route.get() + this->Env().Count(),
                 rng_);
 
         return {std::move(tempA), std::move(tempB)};
@@ -141,16 +147,16 @@ private:
         if(dis(rng_) <= MutationProbabillity)
             Opt2RandomSwap(
                 value.route.get(),
-                value.route.get() + Env().Count(),
+                value.route.get() + this->Env().Count(),
                 rng_);
     }
 
     void Evaluate(value_type& value)
     {
         value.cost =  CostOf(
-            Env(),
+            this->Env(),
             value.route.get(),
-            value.route.get() + Env().Count());
+            value.route.get() + this->Env().Count());
     }
 
     //template<typename RanomItA, typename RandomItB>
@@ -179,10 +185,21 @@ void CS3910EvolutionPolicy<T>::Initialise()
         population_.get() + populationSize_,
         [&]()
         {
-            value_type temp{0.0, std::make_unique<std::size_t[]>(Env().Count())};
-            std::iota(temp.route.get(), temp.route.get() + Env().Count(), 0);
-            std::shuffle(temp.route.get(), temp.route.get() + Env().Count(), rng_);
-            temp.cost = CostOf(Env(), temp.route.get(), temp.route.get() + Env().Count());
+            value_type temp{
+                0.0,
+                std::make_unique<std::size_t[]>(this->Env().Count())};
+            std::iota(
+                temp.route.get(),
+                temp.route.get() + this->Env().Count(),
+                0);
+            std::shuffle(
+                temp.route.get(),
+                temp.route.get() + this->Env().Count(),
+                rng_);
+            temp.cost = CostOf(
+                this->Env(),
+                temp.route.get(),
+                temp.route.get() + this->Env().Count());
             return temp;
         });
 }
@@ -207,7 +224,7 @@ void CS3910EvolutionPolicy<T>::Step()
         nextGen.emplace_back(std::move(childB));
     }
 
-    
+
     // New generation
     //std::sort(
     //    population_.get(),
@@ -230,7 +247,10 @@ void CS3910EvolutionPolicy<T>::Step()
     {
         best_ = it->cost;
         std::cout << iteration_ << ": " << it->cost << " ";
-        Show(std::cout, it->route.get(), it->route.get() + Env().Count());
+        this->Show(
+            std::cout,
+            it->route.get(),
+            it->route.get() + this->Env().Count());
     }
 }
 

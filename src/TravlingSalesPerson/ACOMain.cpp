@@ -21,10 +21,10 @@ public:
     };
 
     explicit CS3910AntSystemPolicy(char const* fileName)
-        : TravlingSalesman{ fileName }
+        : TravlingSalesman<T>{ fileName }
     {
     }
-    
+
     void Initialise();
 
     void Step();
@@ -83,14 +83,17 @@ void CS3910AntSystemPolicy<T>::Initialise()
         [&](auto& ant)
         {
             ant.cost = 0.0;
-            ant.route = std::make_unique<std::size_t[]>(Env().Count());
+            ant.route = std::make_unique<std::size_t[]>(this->Env().Count());
             ant.rng.seed(rng());
-            std::iota(ant.route.get(), ant.route.get() + Env().Count(), 0);
+            std::iota(
+                ant.route.get(),
+                ant.route.get() + this->Env().Count(),
+                0);
         });
 
-    for (auto i{1}; i < Env().Count(); ++i)
-        for (auto j{i + 1}; j < Env().Count(); ++j)
-            Pheromone(Env(), i, j) = t0_;
+    for (auto i{1}; i < this->Env().Count(); ++i)
+        for (auto j{i + 1}; j < this->Env().Count(); ++j)
+            Pheromone(this->Env(), i, j) = t0_;
 }
 
 template<typename T>
@@ -103,19 +106,26 @@ void CS3910AntSystemPolicy<T>::Step()
         [&](auto& ant)
     {
         auto& [cost, route, rng] = ant;
-        Construct(route.get(), route.get() + Env().Count(), rng);
-        cost = CostOf(Env(), route.get(), route.get() + Env().Count());
+        Construct(route.get(), route.get() + this->Env().Count(), rng);
+        cost = CostOf(
+            this->Env(),
+            route.get(),
+            route.get() + this->Env().Count());
     });
 
-    DecayPheromone(Env(), p_);
-    
+    DecayPheromone(this->Env(), p_);
+
     std::for_each(
         population_.get(),
         population_.get() + populationSize_,
         [&](auto& ant)
         {
             auto& [cost, route , rng] = ant;
-            IncreasePheromone(Env(), q_/cost, route.get(), route.get() + Env().Count());
+            IncreasePheromone(
+                this->Env(),
+                q_/cost,
+                route.get(),
+                route.get() + this->Env().Count());
         });
 
 
@@ -131,7 +141,10 @@ void CS3910AntSystemPolicy<T>::Step()
     {
         best_ = it->cost;
         std::cout << iteration_ << ": " << it->cost << " ";
-        Show(std::cout, it->route.get(), it->route.get() + Env().Count());
+        this->Show(
+            std::cout,
+            it->route.get(),
+            it->route.get() + this->Env().Count());
     }
 }
 
@@ -140,11 +153,11 @@ template<typename RandomIt, typename RngT>
 void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last, RngT& rng)
 {
     assert(first != last);
-    auto edgeDesire{ std::make_unique<double[]>(Env().Count()) };
+    auto edgeDesire{ std::make_unique<double[]>(this->Env().Count()) };
 
     using IntDistribution = std::uniform_int_distribution<std::size_t>;
 
-    std::swap(*first, first[IntDistribution{0, Env().Count() - 1}(rng)]);
+    std::swap(*first, first[IntDistribution{0, this->Env().Count() - 1}(rng)]);
     while (first + 1 != last)
     {
         auto const pivot{ *(first++) };
@@ -153,8 +166,8 @@ void CS3910AntSystemPolicy<T>::Construct(RandomIt first, RandomIt last, RngT& rn
             last,
             [&](auto const next) noexcept
             {
-                edgeDesire[next] = std::pow(Pheromone(Env(), pivot, next), a_)
-                    * std::pow(Weight(Env(), pivot, next), -b_);
+                edgeDesire[next] = std::pow(Pheromone(this->Env(), pivot, next), a_)
+                    * std::pow(Weight(this->Env(), pivot, next), -b_);
             });
 
         auto const total = std::accumulate(
