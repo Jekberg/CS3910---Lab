@@ -1,4 +1,14 @@
 add_executable(
+    "Check-TSP"
+    "Check-Main.cpp")
+
+target_include_directories(
+    "Check-TSP"
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CS3910_INCLUDE_DIR})
+
+add_executable(
     "RNG-TSP"
     "RNG-Main.cpp")
 

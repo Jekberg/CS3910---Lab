@@ -46,6 +46,8 @@ public:
 
     constexpr AdjacencyMatrix<T>& Env() noexcept;
 
+    constexpr NodeInfo const* Nodes() const noexcept;
+
     constexpr NodeInfo const& Node(std::size_t id) const noexcept;
 
 private:
@@ -97,6 +99,15 @@ TravlingSalesman<T>::Node(std::size_t id)
     noexcept
 {
     return nodeIndex_[id];
+}
+
+template<typename T>
+constexpr typename TravlingSalesman<T>::NodeInfo const*
+TravlingSalesman<T>::Nodes()
+    const
+    noexcept
+{
+    return nodeIndex_.data();
 }
 
 template<typename T>
