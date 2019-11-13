@@ -145,7 +145,7 @@ int main(int argc, char const** argv)
     using ParticleSwarmPolicy = CS3910ParticleSwarmPolicy;
     typename ParticleSwarmPolicy::Parameters params{};
     params.populationSize = 20 + std::sqrt(arr.count());
-    params.iterations = 10000;
+    params.iterations = 1000;
     params.n = 1.0 / (2.0 * std::log(2));
     params.o1 = 1.0 / 2.0 + std::log(2);
     params.o2 = 1.0 / 2.0 + std::log(2);
